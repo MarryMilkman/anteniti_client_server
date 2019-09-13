@@ -3,7 +3,12 @@
 
 
 #include "lib.h"
-
+#include "controllers/RouterInfoController.hpp"
+#include "controllers/BroadcastController.hpp"
+#include "controllers/StatusController.hpp"
+#include "controllers/SettingController.hpp"
+#include "controllers/CloudController.hpp"
+#include "controllers/SSHTunnelController.hpp"
 
 class Server
 {
@@ -11,7 +16,18 @@ public:
 	Server();
 	~Server();
 
+
 private:
+	RouterInfoController	&_info_controller;
+	BroadcastController 	&_bc_controller;
+	StatusController 		&_status_controller;
+	SettingController 		&_setting_controller;
+	CloudController 		&_cloud_controller;
+	SSHTunnelController 	&_ssh_tunnel_controller;
+
+	static std::mutex 	_mutex;
+
+
 	void				_startWork();
 	void 				_init();
 
@@ -19,6 +35,7 @@ private:
 	bool 				_refresh_setting_in_mesh();
 	bool 				_refresh_general_setting_in_mesh();
 
+	void 		_thread_metod();
 	// cloud
 	void 				_get_new_key_and_notify();
 	void 				_sendErrorTo_cloud(std::vector<RouterData> &list_routers);
@@ -28,20 +45,35 @@ private:
 	int 				_send_setting_to(std::string path_setting, std::vector<RouterData> &list_routers);
 
 	// comunicated (tcp/ip)
+	static void 		_start_send_devices_info();
+
 	void 				_get_info_from_routers_and_send_to_cloud(
 				std::vector<RouterData> list_routers);
 	int 				_send_and_notify_setting_chenge(
+				std::string path_setting,
 				std::vector<RouterData> list_routers);
 	int 				_order_applay_and_save_setting(
 				std::vector<RouterData> list_routers);
 
-	void				_listenAnswers(
+
+	static void			_listenAnswers(
 				std::vector<RouterData> &list_routers,
 				std::string 			answer_success,
-				std::string				answer_fail,
 				int 					port,
 				int 					timeout);
 
+
+	class Tesst {
+	public:
+		void 	operator()() {
+			while (1) {
+				std::vector<RouterData> list_routers;
+				Server::_listenAnswers(list_routers, std::string(), 0, 0);
+				sleep(5);
+			}
+		}
+
+	};
 
 };
 

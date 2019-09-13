@@ -1,6 +1,6 @@
-STAG_DIR = ./../../../staging_dir/toolchain-mipsel_24kc_gcc-5.5.0_musl
+#STAG_DIR = ./../../../staging_dir/toolchain-mipsel_24kc_gcc-5.5.0_musl/
 CC = gcc
-CFLAGS = -Os -Wall -Wmissing-declarations -g3
+CFLAGS = -Os -Wall -Wmissing-declarations -g3 -g
 CPPFLAGS = -std=c++11 -lssh2 -lcurl
 LDFLAGS  = -L$(STAG_DIR)/usr/lib -L$(STAG_DIR)/
 
@@ -26,10 +26,13 @@ SRC		:= 				main.cpp \
 			\
 			controllers/BroadcastController.cpp \
 			controllers/RouterInfoController.cpp \
+			controllers/info_tools/DeviceInfo.cpp \
+			controllers/info_tools/ConnectedDeviceInfo.cpp \
 			controllers/StatusController.cpp \
 			controllers/SettingController.cpp \
 			controllers/setting_tools/Setting.cpp \
 			controllers/CloudController.cpp \
+			controllers/SSHTunnelController.cpp \
 			\
 			ScriptExecutor.cpp \
 			FlagsHendler.cpp \
@@ -37,7 +40,8 @@ SRC		:= 				main.cpp \
 			RouterData.cpp \
 			Timer.cpp \
 			Encryptor.cpp \
-			Parser.cpp
+			Parser.cpp \
+			Mutex.cpp
 
 OBJ		:= $(addprefix $(OBJ_DIR), $(SRC:.cpp=.o))
 
@@ -62,7 +66,7 @@ $(OBJ_DIR)%.o: $(SRC_DIR)%.cpp
 
 # Create a directory for object files
 obj_dir:
-	@mkdir -p $(OBJ_DIR) $(OBJ_DIR)/server_tools $(OBJ_DIR)/client_tools $(OBJ_DIR)/controllers
+	@mkdir -p $(OBJ_DIR) $(OBJ_DIR)/server_tools $(OBJ_DIR)/client_tools $(OBJ_DIR)/controllers $(OBJ_DIR)/controllers/setting_tools $(OBJ_DIR)/controllers/info_tools
 
 # Delete object files
 clean:

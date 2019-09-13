@@ -2,17 +2,18 @@
 #include "Timer.hpp"
 #include "CustomException.hpp"
 
-#include "controllers/RouterInfoController.hpp"
-#include "controllers/BroadcastController.hpp"
-#include "controllers/StatusController.hpp"
-#include "controllers/SettingController.hpp"
-#include "controllers/CloudController.hpp"
 
 #include "TCP_IP_Worker.hpp"
 #include "SSH_Worker.hpp"
 #include "Parser.hpp"
 
-Server::Server()
+Server::Server() :
+	_info_controller(RouterInfoController::getInstance()),
+	_bc_controller(BroadcastController::getInstance()),
+	_status_controller(StatusController::getInstance()),
+	_setting_controller(SettingController::getInstance()),
+	_cloud_controller(CloudController::getInstance()),
+	_ssh_tunnel_controller(SSHTunnelController::getInstance())
 {
 	std::cout << "Server:\n";
 	this->_sendSelfInfoTo_cloud();
@@ -23,15 +24,15 @@ Server::Server()
 }
 
 Server::~Server() {
-	BroadcastController::getInstance().send(SERVER_MOD_FREE, 15);
-	StatusController::getInstance().server_availabilit = false;
+	try {
+		this->_bc_controller.send(SERVER_MOD_FREE, 15);
+	} catch (std::exception &e) {}
+	this->_status_controller.server_availabilit = false;
 }
 
 	// first init. use by constructor only
 void Server::_init() {
-	// SettingController	&setting = SettingController::getInstance();
-	SettingController::getInstance();
-	StatusController::getInstance().server_availabilit = true;
+	this->_status_controller.server_availabilit = true;
 	// setting.roolback_setting();
 }
 
@@ -39,15 +40,15 @@ void Server::_init() {
 	// get new ssh key from cloud for comunicate in mesh...
 	// will probably be implemented
 void Server::_get_new_key_and_notify() {
-	// CloudController			cloud_c = CloudController::getInstance();
-	BroadcastController		&bc_controller = BroadcastController::getInstance();
-	std::vector<RouterData> list_routers = RouterInfoController::getInstance().get_routers_info();
+	std::vector<RouterData> list_routers = this->_info_controller.get_routers_info();
 
 	while (1) {
 		bool 	is_key_reseived = true;
 
-		bc_controller.send(KEY_WAS_CHANGED, 10);
-		this->_listenAnswers(list_routers, KEY_WAS_RESEIVED, "", LISTEN_PORT, 1);
+		try {
+			this->_bc_controller.send(KEY_WAS_CHANGED, 10);
+		} catch (std::exception &e) {}
+		Server::_listenAnswers(list_routers, KEY_WAS_RESEIVED, LISTEN_PORT, 1);
 		for (RouterData router : list_routers)
 			if (!router.is_ok) {
 				is_key_reseived = false;
@@ -64,16 +65,13 @@ void Server::_get_new_key_and_notify() {
 	//	-send broadcast, and notify mesh about self status (server mod)
 	//	-refresh setting in the mesh (see metod _refresh_setting_in_mesh)
 void 		Server::_take_on_responsibility() {
-	RouterInfoController 	&info_controller = RouterInfoController::getInstance();
-	// SettingController 		&setting_controller = SettingController::getInstance();
-	std::vector<RouterData> list_routers = info_controller.get_routers_info();
-	RouterData				self_info = info_controller.get_self_info();
+	std::vector<RouterData> list_routers = this->_info_controller.get_routers_info();
+
+	RouterData				self_info = this->_info_controller.get_self_info();
 	std::string 			scp_path = CONFIG_FILE_PATH;
 	SSH_Worker 				ssh;
 	std::ofstream 			config_file;
-	std::string 			temporary_file_path = "./qwerty";
-
-
+	std::string 			temporary_file_path = "/tmp/qwerty";
 
 	config_file.open(temporary_file_path);
 	config_file << self_info.ip;
@@ -82,14 +80,21 @@ void 		Server::_take_on_responsibility() {
 		ssh.login = router.login;
 		ssh.ip = router.ip;
 		ssh.pass = router.pass;
+		std::cerr << "TUT MOJET BIT ERROR!\n";
 		ssh.scp(temporary_file_path, scp_path);
 	}
-	BroadcastController::getInstance().send(SERVER_MOD_LOCK, 15);
-	// if (setting_controller.is_setting_chenge())
-	while (!this->_refresh_general_setting_in_mesh()) {
-		std::cerr << "Cant refresh setting in the mesh... AND WE JUST IN THE BEGININ!\n";
-		// exit(0);
+	system(("rm " + temporary_file_path).c_str());
+	try {
+		this->_bc_controller.send(SERVER_MOD_LOCK, 15);
 	}
+	catch (std::exception &e) {}
+	// if (this->_setting_controller.is_setting_chenge())
+	if (this->_setting_controller.get_version() >= 0)
+		while (!this->_refresh_general_setting_in_mesh()) {
+			std::cerr << "Cant refresh setting in the mesh... AND WE JUST IN THE BEGININ!\n";
+			// exit(0);
+		}
+	std::cerr << "end take on responsibility\n";
 }
 
 
@@ -99,60 +104,125 @@ void 		Server::_take_on_responsibility() {
 	//		a)one in 2 period (10 sec) check connection to the internet (is WAN)
 	//		b)get info from mesh, and send it to Cloud
 void	Server::_startWork() {
-	SettingController 		&setting_controller = SettingController::getInstance();
-	Timer  					timer;
-	int 					iteration = 0;
+	Timer  					timer_wan;
+	Timer 					timer_send_serial_number;
+	std::string 			instruction;
+
 
 	std::cerr << "Start work-------------------------------------------------\n";
-
-	if (!setting_controller.is_setting_chenge() && !StatusController::isWAN())
-		return ;
+	if (this->_setting_controller.is_setting_chenge())
+		this->_refresh_setting_in_mesh();
 	while (1) {
-		if (setting_controller.is_setting_chenge()) {
-			this->_refresh_setting_in_mesh();
+		if (timer_wan.one_time_in(5) && !StatusController::isWAN()) {
+			std::cerr << "chalom =\\\n";
+			this->_ssh_tunnel_controller.disconnect_tunnel();
+			return;
 		}
-		if (timer.one_time_in(5)) {
-			std::vector<RouterData> list_routers = RouterInfoController::getInstance().get_routers_info();
-
-			if (!iteration % 2 && !StatusController::isWAN()) {
-				// go to destructor
-				return;
+		// if (!this->_ssh_tunnel_controller.is_tunnel_available()) {
+		// 	std::cerr << "try create ssh tunnel...\n";
+		// 	this->_ssh_tunnel_controller.make_tunnel();
+		// 	continue ;
+		// }
+		instruction = this->_ssh_tunnel_controller.get_instruction();
+		if (instruction == SETTING_CHENGED) {
+			if (!this->_setting_controller.is_setting_chenge())
+				this->_ssh_tunnel_controller.send_message(SETTING_NOT_DELIVERED);
+			else {
+				this->_ssh_tunnel_controller.send_message(SETTING_DELIVERED);
+				this->_refresh_setting_in_mesh();
 			}
-			if (!(iteration % 20))
-				this->_sendSelfInfoTo_cloud();
-			iteration++;
+		}
+		if (instruction == SEND_INFO) {
+			std::vector<RouterData> list_routers = this->_info_controller.get_routers_info();
 			this->_get_info_from_routers_and_send_to_cloud(list_routers);
 		}
-		// if (iteration > 1 )
+		if (timer_send_serial_number.one_time_in(60))
+			this->_ssh_tunnel_controller.send_message(this->_info_controller.get_self_info().serial_number);
 	}
 }
+
+// // MARK : divace info (thread)
+//
+// void 		Server::_start_send_devices_info() {
+// 	while (1) {
+// 		// std::unique_lock<std::mutex> lock(Server::_mutex, std::try_to_lock);
+// 		// if(!lock.owns_lock()){
+//     		// return ;
+// 		// }
+// 		// std::this_thread::yield();
+//
+// 		std::cerr << "do nothing..........\n";
+// 		// sleep(1);
+// 		std::this_thread::sleep_for(std::chrono::seconds(5));
+// 		std::cerr << "and we begin!  >->->->->->->->->->->->\n";
+// 		//
+// 		// RouterInfoController 	&this->_info_controller = this->_info_controller;
+// 		// std::vector<RouterData>	list_routers = this->_info_controller.get_routers_info();
+// 		// int 					i;
+// 		std::string 			info;
+// 		//
+// 		// i = 0;
+// 		// info += "DeviceBegin" + ++i;
+// 		// info += this->_info_controller.get_info_for_cloud();
+// 		// info += "DeviceEnd" + i;
+// 		//
+// 		// try {
+// 		// 	this->_bc_controller.send(SEND_INFO, 10);
+// 		// 	Server::_listenAnswers(list_routers, "Get information...", LISTEN_PORT, 1);
+// 		// } catch (std::exception &e) {}
+// 		// for (RouterData router : list_routers) {
+// 		// 	info += "DeviceBegin" + std::to_string(++i) + "\n";
+// 		// 	info += router.message;
+// 		// 	info += "DeviceEnd" + std::to_string(i) + "\n";
+// 		// 	// router.is_ok = true;
+// 		// 	std::string 	s_print = "Info from ip " + router.ip + ":\n";
+// 		// 	s_print += router.message + "\n- - - - - - -\n";
+// 		// 	std::cerr << s_print.c_str();
+// 		// }
+// 		//
+// 		info = "0";
+// 		//
+// 		this->_cloud_controller.post_info_to_cloud(info);
+// 	}
+// }
+
 
 
 
 // MARK : SETTING section - SETTING section - SETTING section - SETTING section
 
 bool    	Server::_refresh_general_setting_in_mesh() {
-	// SettingController		&sett_cont = SettingController::getInstance();
-	BroadcastController 	&bc_controller = BroadcastController::getInstance();
-	std::vector<RouterData>	list_routers = RouterInfoController::getInstance().get_routers_info();
-	// std::string 			version_setting = sett_cont.get_version();
-	std::string 			version_setting = "sett_cont.get_version()";
+	std::vector<RouterData>	list_routers;
+	int 					version_setting = this->_setting_controller.get_version();
 	int 					i = 0;
 
-	bc_controller.send(SEND_SETTING_VERSION, 10);
-	this->_listenAnswers(list_routers, "", "", LISTEN_PORT, 1);
-	for (RouterData router : list_routers) {
-		if (router.message == version_setting)
-			list_routers.erase(list_routers.begin() + i);
-		i++;
+	try {
+		this->_bc_controller.send(SEND_SETTING_VERSION, 10);
+		list_routers = this->_info_controller.get_routers_info();
+		Server::_listenAnswers(list_routers, "", LISTEN_PORT, 1);
+		for (RouterData router : list_routers) {
+			if (router.message == std::to_string(version_setting))
+				list_routers.erase(list_routers.begin() + i);
+			i++;
+		}
+		list_routers = this->_info_controller.get_routers_info();
+		if (this->_send_and_notify_setting_chenge(PATH_SETTING, list_routers)){
+			std::cerr << "setting dont send to all routers...\n";
+			// this->_refresh_setting_in_mesh();
+			return false;
+		}
+		this->_bc_controller.send(SETTING_APPLY, 10);
+		list_routers = this->_info_controller.get_routers_info();
+		Server::_listenAnswers(list_routers, SETTING_APPLYED, LISTEN_PORT, 2);
+		for (RouterData router : list_routers)
+			if (!router.is_ok) {
+				std::cerr << router.ip << " fail apply: " << router.message << "\n";
+				return false;
+			}
+		this->_bc_controller.send(SETTING_SAVE, 10);
 	}
-	this->_send_setting_to(PATH_SETTING, list_routers);
-	bc_controller.send(SETTING_DELIVERED, 10);
-	this->_listenAnswers(list_routers, "", "", LISTEN_PORT, 1);
-	bc_controller.send(SETTING_APPLY, 10);
-	this->_listenAnswers(list_routers, "", "", LISTEN_PORT, 1);
-	bc_controller.send(SETTING_SAVE, 10);
-	this->_listenAnswers(list_routers, "", "", LISTEN_PORT, 1);
+	catch (std::exception &e) {}
+	std::cerr << "end of refresh general setting\n";
 	return true;
 }
 
@@ -162,9 +232,9 @@ bool    	Server::_refresh_general_setting_in_mesh() {
 	//	if answer ok -- tell them to apply setting, and then (if everything ok)
 	// 	seva them.
 bool 		Server::_refresh_setting_in_mesh() {
-	std::vector<RouterData> list_routers = RouterInfoController::getInstance().get_routers_info();
+	std::vector<RouterData> list_routers = this->_info_controller.get_routers_info();
 
-	if (this->_send_and_notify_setting_chenge(list_routers)){
+	if (this->_send_and_notify_setting_chenge(PATH_VARIABLE_SETTING, list_routers)){
 		std::cerr << "setting dont send to all routers... resend setting to routers\n";
 		// this->_refresh_setting_in_mesh();
 		return false;
@@ -182,23 +252,22 @@ bool 		Server::_refresh_setting_in_mesh() {
 	// 	-listen answer
 	//		a) everything ok - return 0;
 	// 		b) some router KO - send error message to cloud and return -1;
-int 		Server::_send_and_notify_setting_chenge(std::vector<RouterData> list_routers) {
+int 		Server::_send_and_notify_setting_chenge(std::string path_to_setting, std::vector<RouterData> list_routers) {
 	if (!list_routers.size())
 		return 0;
 	std::vector<RouterData> errors_list_routers;
-	BroadcastController		&bc_controller = BroadcastController::getInstance();
 
 	while (list_routers.size()) {
-		if (this->_send_setting_to(PATH_VARIABLE_SETTING, list_routers))
+		if (this->_send_setting_to(path_to_setting, list_routers))
 			return -1;
 		try {
-			bc_controller.send(SETTING_CHENGED, 10);
+			this->_bc_controller.send(SETTING_CHENGED, 10);
 		}
 		catch (std::exception &e) {
 			std::cerr << e.what() << "\n";
 			continue;
 		}
-		this->_listenAnswers(list_routers, SETTING_DELIVERED, SETTING_NOT_DELIVERED, LISTEN_PORT, 1);
+		Server::_listenAnswers(list_routers, SETTING_DELIVERED, LISTEN_PORT, 1);
 		for (RouterData router : list_routers)
 			if (!router.is_ok)
 				errors_list_routers.push_back(router);
@@ -220,26 +289,25 @@ int 		Server::_send_and_notify_setting_chenge(std::vector<RouterData> list_route
 	// 	-if not ok then send broadcast SETTING_ROOL_BACK (to roolback setting) and roolback self setting
 int 		Server::_order_applay_and_save_setting(std::vector<RouterData> list_routers) {
 	std::vector<RouterData> 	errors_list_routers;
-	BroadcastController			&bc_controller = BroadcastController::getInstance();
-	SettingController 			&setting_controller = SettingController::getInstance();
 	eSettingStatus				setting_status;
-	std::vector<std::string>	list_unaplly_setting;
+	std::vector<std::string>	list_unaplly_options;
 	std::string 				string_with_answers_for_pars;
 	bool 						is_ok = true;
 
 	try {
-		bc_controller.send(SETTING_APPLY, 10);
+		this->_bc_controller.send(SETTING_APPLY, 10);
 	}
 	catch (std::exception &e) {
 		std::cerr << e.what() << "\n";
 		return -1;
 	}
-	setting_status = setting_controller.apply_setting();
-	this->_listenAnswers(list_routers, SETTING_APPLYED, SETTING_NOT_APPLYED, LISTEN_PORT, 1);
+	if ((setting_status = this->_setting_controller.apply_setting()) != eSettingStatus::sApplyOK)
+		is_ok = false;
+	Server::_listenAnswers(list_routers, SETTING_APPLYED, LISTEN_PORT, 1);
 
 	for (RouterData router : list_routers) {
-		string_with_answers_for_pars += router.message + "\n";
 		if (!router.is_ok) {
+			string_with_answers_for_pars += router.message + "\n";
 			errors_list_routers.push_back(router);
 			is_ok = false;
 		}
@@ -247,37 +315,36 @@ int 		Server::_order_applay_and_save_setting(std::vector<RouterData> list_router
 	if (!is_ok) {
 		if (setting_status != eSettingStatus::sApplyOK) {
 			string_with_answers_for_pars += SETTING_NOT_APPLYED;
-			for (Setting self_setting : setting_controller.get_list_unapply_setting())
-				string_with_answers_for_pars += " " + self_setting.option;
+			string_with_answers_for_pars += " " + this->_setting_controller.get_str_unapply_options();
 			string_with_answers_for_pars += "\n";
 		}
 			//
-		list_unaplly_setting = Parser::pars_answer_apply(string_with_answers_for_pars);
+		list_unaplly_options = Parser::pars_answer_apply(string_with_answers_for_pars);
 		this->_sendErrorTo_cloud(errors_list_routers);
 		try {
 			std::string 	bc_message = SETTING_ROOL_BACK;
 
-			for (std::string s : list_unaplly_setting)
+			for (std::string s : list_unaplly_options)
 				bc_message += " " + s;
-			bc_controller.send(bc_message, 10);
+			this->_bc_controller.send(bc_message, 10);
 		}
 		catch (std::exception &e) {
 			std::cerr << e.what() << "\n";
 			return -1;
 		}
-		setting_controller.roolback_setting(list_unaplly_setting);
+		this->_setting_controller.roolback_setting(list_unaplly_options);
 		return -1;
 	}
 	else {
 		std::cerr << "Setting applyed\n";
 		try {
-			bc_controller.send(SETTING_SAVE, 10);
+			this->_bc_controller.send(SETTING_SAVE, 10);
 		}
 		catch (std::exception &e) {
 			std::cerr << e.what() << "\n";
 			return -1;
 		}
-		setting_controller.save_setting();
+		this->_setting_controller.save_setting();
 		std::cerr << "Setting save\n";
 	}
 	return 0;
@@ -285,8 +352,7 @@ int 		Server::_order_applay_and_save_setting(std::vector<RouterData> list_router
 
 	// send the setting by scp to routers in the received list
 int 	Server::_send_setting_to(std::string path_setting, std::vector<RouterData> &list_routers) {
-	RouterInfoController &info_controller = RouterInfoController::getInstance();
-	RouterData 			server = info_controller.get_server_info();
+	RouterData 			server = this->_info_controller.get_server_info();
 	SSH_Worker 			ssh;
 
 	for (RouterData router : list_routers) {
@@ -317,18 +383,18 @@ int 	Server::_send_setting_to(std::string path_setting, std::vector<RouterData> 
 	//		-all routers send info to cloud independently
 	// P.S. now use scenario A
 void 		Server::_get_info_from_routers_and_send_to_cloud(std::vector<RouterData> list_routers) {
-	BroadcastController		&bc_controller = BroadcastController::getInstance();
-	RouterInfoController 	&info_controller = RouterInfoController::getInstance();
 	std::vector<RouterData>	error_list;
 	int 					i;
 	std::string 			info;
 
 	i = 0;
 	info += "DeviceBegin" + ++i;
-	info += info_controller.get_info_for_cloud();
+	info += this->_info_controller.get_info_for_cloud();
 	info += "DeviceEnd" + i;
-	bc_controller.send(SEND_INFO, 10);
-	this->_listenAnswers(list_routers, "Get information...", "", LISTEN_PORT, 1);
+	try {
+		this->_bc_controller.send(SEND_INFO, 10);
+		Server::_listenAnswers(list_routers, "Get information...", LISTEN_PORT, 1);
+	} catch (std::exception &e) {}
 	for (RouterData router : list_routers) {
 		info += "DeviceBegin" + std::to_string(++i) + "\n";
 		info += router.message;
@@ -337,11 +403,8 @@ void 		Server::_get_info_from_routers_and_send_to_cloud(std::vector<RouterData> 
 		std::cerr << "Info from ip " << router.ip << ":\n";
 		std::cerr << router.message << "\n- - - - - - -\n";
 	}
-	// parser.pars_and_add_to_answer(info_controller.get_info_for_cloud());
-
-	CloudController 	&cloud = CloudController::getInstance();
-
-	cloud.post_info_to_cloud(info);
+	// parser.pars_and_add_to_answer(this->_info_controller.get_info_for_cloud());
+	this->_cloud_controller.post_info_to_cloud(info);
 }
 
 	// listen answer
@@ -360,7 +423,6 @@ void 		Server::_get_info_from_routers_and_send_to_cloud(std::vector<RouterData> 
 void Server::_listenAnswers(
 						std::vector<RouterData> 	&list_routers,
 						std::string 				answer_success,
-						std::string					answer_fail,
 						int                 		port,
 						int 						timeout)
 {
@@ -370,8 +432,6 @@ void Server::_listenAnswers(
 	int 					count = 0;
 	int 					size = list_routers.size();
 
-	if (answer_fail == "")
-		count = 0;
 	for (RouterData &router : list_routers) {
 		router.is_ok = false;
 		router.message = ROUNER_NOT_AVAILABLE;
@@ -380,7 +440,13 @@ void Server::_listenAnswers(
 		std::string message = listener.get_message();
 		std::string ip = listener.get_connected_ip();
 
-		std::cerr << ip << " connect ip\n";
+		std::cerr << ip << " connect ip, mess: " << message << "\n";
+		// for (int j = 0; j < 21; j++) {
+		// 	if (j > 20)
+		// 		std::cerr << "...";
+		// 	else
+		// 		std::cerr << message[j];
+		// }
 		for (RouterData &router : list_routers) {
 			if (router.ip == ip) {
 				count++;
@@ -407,3 +473,5 @@ int  	Server::_sendSelfInfoTo_cloud() {
 void 	Server::_sendErrorTo_cloud(std::vector<RouterData> &error_list_routers) {
 	for (RouterData router : error_list_routers);
 }
+
+std::mutex 		Server::_mutex;

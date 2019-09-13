@@ -2,10 +2,12 @@
 #define DEVICE_INFO
 
 #include "lib.h"
-
+#include "RouterData.hpp"
+#include "controllers/info_tools/ConnectedDeviceInfo.hpp"
 
 class DeviceInfo {
 public:
+    DeviceInfo(RouterData rd);
     DeviceInfo();
     DeviceInfo(DeviceInfo const &ref);
     DeviceInfo &operator=(DeviceInfo const &ref);
@@ -29,6 +31,8 @@ public:
     std::vector<ConnectedDeviceInfo> _list_connected_devices;
 
 private:
+	void 			_refresh();
+
     void            _init_self_info();
 
     //paaaaaaaaaaaaaaaaaaaaaaaaaaaaars

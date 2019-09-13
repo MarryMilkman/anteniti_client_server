@@ -10,7 +10,7 @@
 #include "controllers/StatusController.hpp"
 
 #include "Timer.hpp"
-
+#include "Parser.hpp"
 
 Client::~Client(){}
 
@@ -25,13 +25,11 @@ Client::Client()
 
 
 void 	Client::_startWork() {
-	int count_emty_broadcast = 0;
 	StatusController &s_c = StatusController::getInstance();
 
 	while (1) {
-		if (this->_listenBroadcast())
-			count_emty_broadcast = 0;
-		if (!s_c.server_availabilit || count_emty_broadcast++ > 7) {
+		this->_listenBroadcast(10);
+		if (!s_c.server_availabilit) {
 			if (SettingController::getInstance().is_setting_chenge() || StatusController::isWAN()) {
 				throw CustomException(eExceptType::e_need_server_work_mod);
 			}
@@ -39,13 +37,15 @@ void 	Client::_startWork() {
 	}
 }
 
-bool 	Client::_listenBroadcast() {
+bool 	Client::_listenBroadcast(int timeout) {
 	BroadcastController		&bc_controller = BroadcastController::getInstance();
 	StatusController 		&s_c = StatusController::getInstance();
+	SettingController 		&setting_controller = SettingController::getInstance();
 	std::stringstream 		ss;
 	std::string				order;
 
-	if (bc_controller.receive(1))
+	s_c.server_availabilit = false;
+	if (bc_controller.receive(timeout))
 		return false;
 	ss << bc_controller.get_message();
 	ss >> order;
@@ -57,8 +57,10 @@ bool 	Client::_listenBroadcast() {
 		s_c.server_availabilit = false;
 	else if (order == KEY_WAS_CHANGED)
 		this->_get_key();
-	else if (order == SEND_SETTING_VERSION)
-		this->_sendAnswer("no version", LISTEN_PORT);
+	else if (order == SEND_SETTING_VERSION) {
+		int version = setting_controller.get_version();
+		this->_sendAnswer(std::to_string(version), LISTEN_PORT);
+	}
 
 	// -- setting -- setting -- setting -- setting --
 	else if (order == SETTING_CHENGED) {
@@ -78,8 +80,8 @@ bool 	Client::_listenBroadcast() {
 		std::string 				str_unapply_setting;
 
 		getline(ss, str_unapply_setting);
-		list_unaplly_setting = custom_split(str_unapply_setting, " ");
-		SettingController::getInstance().roolback_setting(list_unaplly_setting);
+		list_unapply_setting = Parser::custom_split(str_unapply_setting, " ");
+		SettingController::getInstance().roolback_setting(list_unapply_setting);
 	}
 	else if (order == SETTING_SAVE)
 		SettingController::getInstance().save_setting();
@@ -110,9 +112,10 @@ void 			Client::_sendAnswer(std::string message, int potr) {
 	}
 	// std::cerr << server.ip << " alllllllaaah  pomogi!\n";
 	while (tcp_ip.tcp_connect(server.ip, potr, 1)) {
-		if (i++ > 100)
+		if (i > 100)
 			break ;
 		usleep(200);
+		i++;
 	}
 	if (i > 100) {
 		std::cerr << "(ANSWER NOT SENDED): " << message << "\n";
@@ -121,4 +124,14 @@ void 			Client::_sendAnswer(std::string message, int potr) {
 	}
 	std::cerr << "success connect, try: " << i << "\n";
 	tcp_ip.tcp_send(message);
+}
+
+
+std::string 	Client::_get_answer_message_setting_unapply() {
+	std::string 		answer;
+	SettingController	&setting_controller = SettingController::getInstance();
+
+	answer += SETTING_NOT_APPLYED;
+	answer += " " + setting_controller.get_str_unapply_options();
+	return answer;
 }

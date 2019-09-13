@@ -21,17 +21,37 @@ SettingController::SettingController()
 
         n_file_setting << "Version -1\n";
     }
+    this->_init_list_setting();
 }
 
 SettingController::~SettingController() {}
 
 SettingController &SettingController::getInstance() {
-    static SettingController setting;
+    std::lock_guard<std::mutex> guard(SettingController::_mutex);
+    static SettingController    setting;
 
     return setting;
 }
 
+int                     SettingController::get_version() {
+    std::lock_guard<std::mutex> guard(SettingController::_mutex);
 
+    for (Setting setting : this->_list_setting)
+    if (setting.option == "Version")
+    return std::stoi(setting.value);
+    return -1;
+}
+
+std::string             SettingController::get_str_unapply_options() {
+    std::lock_guard<std::mutex> guard(SettingController::_mutex);
+
+    std::string r_str;
+
+    for (Setting unapply_setting : this->_list_unapply_setting)
+        r_str += " " + unapply_setting.option;
+    r_str = r_str.c_str() + 1;
+    return r_str;
+}
 
 
 
@@ -42,68 +62,75 @@ SettingController &SettingController::getInstance() {
     // copy some setting to tmp_setting_for_roolback.system
     // apply setting (start same scripts)..................
 eSettingStatus         SettingController::apply_setting() {
-    // std::fstream   file;
-    std::string    line;
+    std::lock_guard<std::mutex> guard(SettingController::_mutex);
+
     std::vector<std::string>    list_apply_setting;
     std::vector<std::string>    list_fail_setting;
+    // eWorkMod                    wm = StatusController::getInstance().getWorkMod();
 
-    // if (this->_type_setting == eSettingType::tGlobal)
-        // file.open(PATH_SETTING);
-    // else
-
-        std::cerr << "setting: start APPLY!\n";
-    // file.open(PATH_VARIABLE_SETTING);
-    // if (!file.is_open()) {
-    //     std::cerr << "apply fail! 1\n";
-    //     return eSettingStatus::sApplyFail_no_file;
-    // }
+    std::cerr << "setting: start APPLY!\n";
+    // if (!this->_list_new_setting.size())
+    //     if (!this->is_setting_chenge())
+    //         return eSettingStatus::sApplyFail;
     this->_copy_old_setting();
-    for (Setting obj_setting : this->_list_setting) {
-        if (this->_find_setting_end_apply(obj_setting.option, obj_setting.parameter)){
-            std::cerr << "apply fail! " << line << "\n";
-            list_fail_setting.push_back(obj_setting.get_string());
+    for (Setting setting : this->_list_new_setting) {
+        int     answer;
+
+        answer = this->_find_setting_end_apply(setting.option, setting.value);
+        if (answer < 0) {
+            std::cerr << "Not exist: " <<  setting.get_string() << "\n";
             continue;
         }
-        list_apply_setting.push_back(obj_setting.get_string());
+        if (answer > 0){
+            std::cerr << "Setting fail: " << setting.get_string() << "\n";
+            this->_list_unapply_setting.push_back(setting);
+            continue;
+        }
+        list_apply_setting.push_back(setting.get_string());
     }
-    this->_change_setting_file(list_apply_setting);
-    return eSettingStatus:: sApplyOK;
+    if (this->_list_unapply_setting.size())
+        return eSettingStatus::sApplyFail;
+    if (list_apply_setting.size())
+        this->_change_list_setting(list_apply_setting);
+    return eSettingStatus::sApplyOK;
 }
 
     // apply file tmp_setting_for_roolback.system
     // delete variable_setting.system
-eSettingStatus         SettingController::roolback_setting() {
-    std::fstream   file;
-    std::string    line;
-    std::vector<std::string>    list_apply_setting;
-    std::vector<std::string>    list_fail_setting;
+eSettingStatus         SettingController::roolback_setting(std::vector<std::string> list_unapply_options) {
+    {
+        std::lock_guard<std::mutex> guard(SettingController::_mutex);
+        std::vector<std::string>    list_apply_setting;
+        std::vector<std::string>    list_fail_setting;
 
-    std::cerr << "setting: start ROOLBACK!\n";
-    file.open(PATH_COPY_SETTING);
-    if (!file.is_open()) {
-        std::cerr << "roolback fail! 1\n";
-        return eSettingStatus::sRoolbackFail;
-    }
-    while(getline(file, line)) {
-        if (line[0] == '#')
-            continue;
-        std::string     option;
-        std::string     parameter;
-        this->_pars_line(line, option, parameter);
-        if (this->_find_setting_end_apply(option, parameter)){
-            std::cerr << "roolback fail! " << line << "\n";
-            list_fail_setting.push_back(line);
-            continue;
-            // << ":" << parameter << "\n";
-            // return eSettingStatus::sRoolbackFail;
+        std::cerr << "setting: start ROOLBACK!\n";
+        for (Setting cpy_setting : this->_list_copy_setting) {
+            bool    is_exist = false;
+            int     answer;
+
+            for (std::string option : list_unapply_options)
+                if (option == cpy_setting.option) {
+                    is_exist = true;
+                    break ;
+                }
+            if (!is_exist)
+                continue;
+            answer = this->_find_setting_end_apply(cpy_setting.option, cpy_setting.value);
+            if (answer < 0)
+                continue;
+            if (answer > 0){
+                std::cerr << "Setting fail: " << cpy_setting.get_string() << "\n";
+                this->_list_unapply_setting.push_back(cpy_setting);
+                continue;
+            }
+            list_apply_setting.push_back(cpy_setting.get_string());
         }
-        list_apply_setting.push_back(line);
+        if (!list_apply_setting.size()) {
+            std::cerr << "Fail apply any setting\n";
+            return eSettingStatus::sRoolbackFail;
+        }
+        this->_change_list_setting(list_apply_setting);
     }
-    if (!list_apply_setting.size()) {
-        std::cerr << "Fail apply any setting\n";
-        return eSettingStatus::sRoolbackFail;
-    }
-    this->_change_setting_file(list_apply_setting);
     this->save_setting();
     return eSettingStatus::sRoolbackOK;
 }
@@ -111,21 +138,24 @@ eSettingStatus         SettingController::roolback_setting() {
     // delete variable_setting.system
     // delete tmp_setting_for_roolbac   k.system
 eSettingStatus         SettingController::save_setting() {
+    std::lock_guard<std::mutex> guard(SettingController::_mutex);
+
     std::cerr << "setting: start SAVE!\n";
-    system("rm " PATH_VARIABLE_SETTING);
+    std::ofstream   file(PATH_SETTING);
+
+    for (Setting setting : this->_list_setting) {
+        // std::cerr << setting.get_string() << "------<\n";
+        file << setting.get_string() << "\n";
+    }
+    // exit(0);
+    file.close();
+    this->_delete_variable_file();
+    this->_list_new_setting.clear();
+    this->_list_copy_setting.clear();
+    this->_list_unapply_setting.clear();
+
     return eSettingStatus::sSaveOK;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -133,46 +163,43 @@ eSettingStatus         SettingController::save_setting() {
 // MARK : check setting....
 
 bool        SettingController::is_setting_chenge() {
-    eWorkMod    wm = StatusController::getInstance().getWorkMod();
+    std::lock_guard<std::mutex> guard(SettingController::_mutex);
 
-    if (this->_list_new_setting.size())
-        return true;
-    if (wm == eWorkMod::wm_server) {
-        if (this->_check_local_setting()) {
-            std::cerr << "Setting chenge!\n";
-            return true;
-        }
-        if (this->_load_and_check_cloud_setting()) {
-            std::cerr << "Setting chenge!\n";
-            return true;
-        }
-    }
-    else if (this->_check_local_setting()) {
-        std::cerr << "Setting chenge!\n";
+    // eWorkMod        wm = StatusController::getInstance().getWorkMod();
+    // static Timer    t;
+
+    if (this->_list_new_setting.size()) {
+        std::cerr << "List new setting alredy full\n";
         return true;
     }
+    // if (wm == eWorkMod::wm_server) {
+    if (this->_check_variable_file_setting()) {
+        return true;
+    } else {
+		std::fstream 	file(PATH_VARIABLE_SETTING);
+
+		if (file.is_open())
+			system("rm " PATH_VARIABLE_SETTING);
+	}
+        // if (t.one_time_in(2)) {
+        //     std::cerr << "Hmmm==\n";
+        //     CloudController::getInstance().get_setting_from_cloud();
+        //     std::cerr << "sssm==\n";
+        //     if (this->_check_variable_file_setting())
+        //         return true;
+        //     else
+        //         this->_delete_variable_file();
+        // }
+    // }
+    // else if (this->_check_variable_file_setting()) {
+    //     return true;
+    // }
     return false;
 }
 
-    // load setting from cloud to /tmp/setting/cloud/download_setting.system
-    // compare /tmp/setting/setting.system and privios_download.system ...
-    //      if cant find line of download_setting in setting - retufn true
-    //      else return false
-bool        SettingController::_load_and_check_cloud_setting() {
-    static Timer   t;
-
-    if (t.one_time_in(2)) {
-        CloudController::getInstance().get_setting_from_cloud();
-        return this->_check_local_setting();
-
-    }
-    return false;
-}
-
-    // try open file /tmp/setting/variable_setting.system
-    //      if file exist - return true
-    //      else return false
-bool        SettingController::_check_local_setting() {
+    // _check_variable_file_setting - check variable_setting.system
+    // check version - if old or no exist - return false
+bool        SettingController::_check_variable_file_setting() {
     int             count_new_setting;
     eWorkMod        wm = StatusController::getInstance().getWorkMod();
 
@@ -180,195 +207,131 @@ bool        SettingController::_check_local_setting() {
         return false;
     }
     count_new_setting = this->_approve_new_setting();
-    if (count_new_setting < 0 || (wm == eWorkMod::wm_server && !count_new_setting))
-        return false;
-    this->_type_setting = eSettingType::tLocal;
-    return true;
-    // if (this->_check_time != this->_get_time_midify())
-    //     return true;
-    // return false;
-}
-
-bool        SettingController::_is_version_update() {
-    std::fstream    file_var;
-    std::fstream    file_set;
-    std::string     version_var;
-    std::string     version_set;
-    std::stringstream   ss;
-
-    file_var.open(PATH_VARIABLE_SETTING);
-    file_set.open(PATH_SETTING);
-    if (!file_var.is_open() || !file_set.is_open()) {
+    std::cerr << count_new_setting << " new setting.....\n";
+    if (count_new_setting < 0 || (wm == eWorkMod::wm_server && !count_new_setting)) {
         return false;
     }
-    file_var >> version_var;
-    file_set >> version_set;
-    if (version_set != version_var)
+    return true;
+}
+
+bool        SettingController::_is_version_update() const {
+    Setting             version = this->_list_setting[0];
+    std::fstream        file_var;
+    std::string         nv_option;
+    std::string         nv_value;
+
+    file_var.open(PATH_VARIABLE_SETTING);
+    if (!file_var.is_open()) {
         return false;
-    file_var >> version_var;
+    }
+    if (StatusController::getInstance().getWorkMod() == eWorkMod::wm_client)
+        return true;
+    file_var >> nv_option;
+    if (nv_option != version.option)
+        return false;
+    file_var >> nv_value;
     file_var.close();
-    file_set >> version_set;
-    file_set.close();
     try {
-        if (std::stoi(version_var) > std::stoi(version_set)) {
+        if (std::stoi(nv_value) > std::stoi(version.value)) {
             return true;
         }
     } catch (std::exception const & e) {}
-    system("rm " PATH_VARIABLE_SETTING);
     return false;
 }
 
 int         SettingController::_approve_new_setting() {
-    std::fstream                file_var;
-    std::fstream                file_set;
     std::vector<std::string>    list_geted_setting;
+    std::fstream                file_var;
     std::string                 str_content_from_file;
     std::string                 line;
+    eWorkMod                    work_mod = StatusController::getInstance().getWorkMod();
+    int                         size;
 
+    this->_list_new_setting.clear();
     file_var.open(PATH_VARIABLE_SETTING);
-    file_set.open(PATH_SETTING);
-    if (!file_var.is_open() || !file_set.is_open())
+    if (!file_var.is_open())
         return -1;
     while(getline(file_var, line)){
         str_content_from_file += line + "\n";
     }
-    list_geted_setting = Parser::pars_setting(str_content_from_file);
     file_var.close();
-    int     size = list_geted_setting.size();
-    int     i;
+    list_geted_setting = Parser::pars_setting(str_content_from_file);
+    size = list_geted_setting.size();
+    for (Setting setting : this->_list_setting) {
+        int i = 0;
 
-    while (getline(file_set, line)) {
-        if (!line.size())
-            continue;
-        i = 0;
         while (i < size) {
-            if (list_geted_setting[i] == line) {
+            if (list_geted_setting[i] == setting.get_string()) {
                 list_geted_setting.erase(list_geted_setting.begin() + i);
                 size = list_geted_setting.size();
                 continue;
             }
             i++;
         }
-        if (!list_geted_setting.size()) {
-            if (StatusController::getInstance().getWorkMod() == eWorkMod::wm_server) {
-                system("rm " PATH_VARIABLE_SETTING);
+        if (!size) {
+            if (work_mod == eWorkMod::wm_server)
                 return -1;
-            }
-            std::ofstream   new_file_var(PATH_VARIABLE_SETTING);
             return 0;
         }
     }
-    file_set.close();
-    system("rm " PATH_VARIABLE_SETTING);
-    this->_list_setting.clear();
-    for (std::string n_setting : list_geted_setting)
-        this->_list_setting.push_back(Setting(n_setting));
-    // std::ofstream   new_file_var(PATH_VARIABLE_SETTING);
-    //
-    // for (std::string option : list_geted_setting) {
-    //     new_file_var << option << "\n";
-    // }
-    // new_file_var.close();
-    // std::cerr << "Scan make... " << list_geted_setting.size() << " new setting\n";
-    return this->_list_setting.size();
+    for (std::string str : list_geted_setting) {
+        this->_list_new_setting.push_back(Setting(str));
+    }
+    return this->_list_new_setting.size();
 }
 
 
-int         SettingController::_change_setting_file(std::vector<std::string> new_list_setting) {
-    std::fstream                set_file(PATH_SETTING);
-    std::vector<std::string>    old_list_setting;
-    std::string                 line;
-
-    while (getline(set_file, line)) {
-        if (line.empty())
-            continue;
-        old_list_setting.push_back(line);
-    }
-    set_file.close();
-
-    std::string     cmp_option;
-    std::string     re_cmp_option;
-
-    std::ofstream   new_set_file(PATH_SETTING);
-
-    // for (std::string re_l : re_list_option)
-    //     std::cerr << re_l << "----<\n";
 
 
-    for (std::string &l : old_list_setting) {
-        std::stringstream   ss(l);
+void    SettingController::_init_list_setting() {
+    std::fstream    file(PATH_SETTING);
+    std::string     line;
+
+    while(getline(file, line))
+        this->_list_setting.push_back(Setting(line));
+}
+
+int         SettingController::_change_list_setting(std::vector<std::string> new_list_setting) {
+    std::string     new_cmp_option;
+
+    for (Setting &setting : this->_list_setting) {
         int                 i = 0;
 
-        ss >> cmp_option;
-        for (std::string re_l : new_list_setting) {
-            std::stringstream re_ss(re_l);
+        for (std::string new_setting_str : new_list_setting) {
+            std::stringstream ss(new_setting_str);
 
-            re_ss >> re_cmp_option;
-            if (cmp_option == re_cmp_option) {
-                l = re_l;
+            ss >> new_cmp_option;
+            if (setting.option == new_cmp_option) {
+                setting.init_by_string(new_setting_str);
                 new_list_setting.erase(new_list_setting.begin() + i);
                 break;
             }
             i++;
         }
-        new_set_file << l << "\n";
     }
-
-    for (std::string re_l : new_list_setting)
-        new_set_file << re_l << "\n";
-    new_set_file.close();
+    for (std::string new_setting_str : new_list_setting)
+        this->_list_setting.push_back(Setting(new_setting_str));
     return 0;
 }
 
-
 int         SettingController::_copy_old_setting() {
-    std::fstream                file_set;
-    std::vector<std::string>    list_copy_option;
-    std::string                 line;
-
-
-    file_set.open(PATH_SETTING);
-    if (!file_set.is_open())
-        return -1;
-    while (getline(file_set, line)) {
-        if (line.empty())
-            continue;
-        std::stringstream   ss(line);
-        std::string         cmp_file_param;
-
-        // std::cerr << line << "??\n";
-
-        ss >> cmp_file_param;
-        for (Setting new_sett : this->_list_setting){
-            std::stringstream ss(new_o);
-            std::string       smp_new_str;
-
-            ss >> smp_new_str;
-            if (cmp_file_param == smp_new_str && new_o != line) {
-                // std::cerr << new_o << " problem?\n";
-                list_copy_option.push_back(line);
-            }
+    for (Setting setting : this->_list_setting){
+        for (Setting new_sett : this->_list_new_setting){
+            if (setting.value == new_sett.value && setting.option != new_sett.option)
+                this->_list_copy_setting.push_back(setting);
         }
     }
-
-    file_set.close();
-    std::ofstream   file_copy;
-
-    file_copy.open(PATH_COPY_SETTING);
-    for (std::string option : list_copy_option)
-            file_copy << option << "\n";
-    file_copy.close();
-
-    return list_copy_option.size();
+    return this->_list_copy_setting.size();
 }
 
-//
-// time_t      SettingController::_get_time_midify() {
-//     struct stat buff;
-//
-//     stat(this->path_to_variable_setting.c_str(), &buff);
-//     return buff.st_mtime;
-// }
+void                    SettingController::_delete_variable_file() {
+    std::fstream f(PATH_VARIABLE_SETTING);
+
+    if (f.is_open()) {
+        f.close();
+        system("rm " PATH_VARIABLE_SETTING);
+    }
+}
 
 
 
@@ -376,10 +339,10 @@ int         SettingController::_copy_old_setting() {
 
 
 
-
+// MARK : APPLY section
 
 int     SettingController::_find_setting_end_apply(std::string setting, std::string value) {
-    // make meeeeeny if else
+    // make maaaany if else
     // and execute scripts by name of setting
 
     if (setting == "AdministratorAuthorizationBegin" ||
@@ -563,11 +526,4 @@ int     SettingController::_apply_group_setting(
     return 0;
 }
 
-// void        SettingController::_pars_line(std::string line, std::string &option, std::string &param) {
-//     std::stringstream ss;
-//
-//     line[line.find_first_of("#")] = 0;
-//     ss << line.c_str();
-//     ss >> option;
-//     param = (line.c_str() + line.size() + 1);
-// }
+std::mutex      SettingController::_mutex;

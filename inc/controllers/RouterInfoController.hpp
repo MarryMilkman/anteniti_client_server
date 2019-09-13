@@ -19,6 +19,8 @@ public:
 
     std::string                 get_info_for_cloud();
 private:
+    static std::mutex           _mutex;
+
     RouterData                  _self_info;
     RouterData                  _server_info;
     std::vector<RouterData>     _list_routers;

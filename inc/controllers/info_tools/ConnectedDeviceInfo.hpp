@@ -5,6 +5,9 @@
 
 class ConnectedDeviceInfo {
 public:
+
+    ConnectedDeviceInfo(int i);
+
     ConnectedDeviceInfo();
     ConnectedDeviceInfo(ConnectedDeviceInfo const &ref);
     ConnectedDeviceInfo &operator=(ConnectedDeviceInfo const &ref);

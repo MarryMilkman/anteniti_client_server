@@ -26,6 +26,8 @@ public:
     void                    choiceModWork();
     eWorkMod                getWorkMod();
 private:
+    static std::mutex      _mutex;
+
     eWorkMod        _mod;
 
     void            _scan();

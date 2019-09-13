@@ -1,6 +1,8 @@
 #include "controllers/BroadcastController.hpp"
 #include "controllers/RouterInfoController.hpp"
 #include "Encryptor.hpp"
+#include "Mutex.hpp"
+
 
 BroadcastController::BroadcastController() {
 
@@ -12,7 +14,8 @@ BroadcastController::~BroadcastController() {
 }
 
 BroadcastController &BroadcastController::getInstance() {
-    static BroadcastController bc_controller;
+    Lock    lock(BroadcastController::_mutex, "BroadcastController");
+    static BroadcastController  bc_controller;
 
     return bc_controller;
 }
@@ -28,17 +31,22 @@ void    BroadcastController::send(std::string message, int nbr_iterat) {
     buff = e.encrypt(message);
     encrypt_mess = buff;
     free(buff);
+    Lock    lock(BroadcastController::_mutex, "BroadcastController");
     this->_dataInit_send();
+    std::cerr << "Broadcast send: " << message << "\n";
     while(++i < nbr_iterat)
     {
-        usleep(200);
+        usleep(1500);
         num_b = sendto(this->_sockfd, encrypt_mess.c_str(), encrypt_mess.size(), 0, (struct sockaddr*)&this->_recvaddr, sizeof(this->_recvaddr));
         if (num_b == -1) {
             perror("Broadcast send (sendto):");
+            if (this->_sockfd > 2)
+                close(this->_sockfd);
             throw std::exception();
         }
     }
-    close(this->_sockfd);
+    if (this->_sockfd > 2)
+        close(this->_sockfd);
 }
 
     // init data for send broadcast
@@ -69,6 +77,7 @@ int     BroadcastController::receive(int timeout_s) {
 
     timeout.tv_sec = timeout_s;
     timeout.tv_usec = 0;
+    Lock    lock(BroadcastController::_mutex, "BroadcastController");
     this->_dataInit_recave();
     sendaddr_len = sizeof(this->_sendaddr);
     FD_ZERO(&readfds);
@@ -146,5 +155,9 @@ bool            BroadcastController::_is_cast_from_server() {
 
     //
 std::string     BroadcastController::get_message() const {
+    Lock    lock(BroadcastController::_mutex, "BroadcastController");
+
     return this->_message;
 }
+
+std::mutex   BroadcastController::_mutex;

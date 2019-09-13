@@ -29,8 +29,10 @@ typedef struct s_memoryStruct {
 
     void        clean() {
         if (this->memory) {
-            free(this->memory);
+            if (this->memory)
+                free(this->memory);
             this->memory = (char *)malloc(1);
+            this->size = 0;
         }
         this->size = 0;
     }
@@ -57,9 +59,11 @@ public:
     std::string     get_response();
 
 private:
-    CURL            *_curl;
-    t_memoryStruct  _response_mem;
-    t_memoryStruct  _ssl_certificate_mem;
+    std::mutex          _mutex;
+
+    CURL                *_curl;
+    t_memoryStruct      _response_mem;
+    t_memoryStruct      _ssl_certificate_mem;
 
     int                 _init_and_execute_post(char *postfild, char *url);
     int                 _clean_after_post();
@@ -91,6 +95,7 @@ private:
         std::string     _get_pf_for_send_info();
         std::string     _get_pf_for_get_setting();
     };
+
 
 };
 

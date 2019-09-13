@@ -15,12 +15,14 @@ public:
     ~BroadcastController();
     static BroadcastController &getInstance();
 
-    void                send(std::string message, int nbr_sending);
-    int                 receive(int timeout);
+    void				send(std::string message, int nbr_sending);
+    int					receive(int timeout);
 
     std::string         get_message() const;
 
 private:
+    static std::mutex   _mutex;
+
     std::string         _message;
     int                 _sockfd;
     struct sockaddr_in  _sendaddr;
@@ -32,6 +34,8 @@ private:
     bool                _is_cast_from_server();
 
     void                _initGeneralData();
+
+
 };
 
 #endif

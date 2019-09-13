@@ -1,1 +1,1 @@
-echo "ubuntu"
+echo "ubuntu_general"

@@ -6,6 +6,8 @@
 #include "Server.hpp"
 #include "Client.hpp"
 
+#include "Mutex.hpp"
+
 StatusController::StatusController() {
     server_availabilit = false;
     this->_fresh();
@@ -16,6 +18,8 @@ StatusController::~StatusController() {
 }
 
 StatusController    &StatusController::getInstance() {
+    std::lock_guard<std::mutex> guard(StatusController::_mutex);
+
     static StatusController controller;
 
     return controller;
@@ -23,11 +27,13 @@ StatusController    &StatusController::getInstance() {
 
 // MARK : check is device master (have WAN)
 bool        StatusController::isWAN() {
+    std::lock_guard<std::mutex> guard(StatusController::_mutex);
+
     std::string     line;
 
-    // return true;
     std::cerr << "checkWAN\n";
-    // return true;
+	return true;
+	// return false;
     line = ScriptExecutor::getOutput::checkWAN();
     if (line == "Online\n")
         return true;
@@ -86,3 +92,5 @@ void        StatusController::_startClient() {
         std::cerr << e.what() << "\n";
     }
 }
+
+std::mutex      StatusController::_mutex;
