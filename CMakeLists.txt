@@ -9,13 +9,13 @@ link_libraries(libssh2)
 link_libraries(libcurl)
 
 include_directories (
-	/home/user/Public/files_server_client_for_openwrt/inc
-	/home/user/Public/files_server_client_for_openwrt/inc/client_tools
-	/home/user/Public/files_server_client_for_openwrt/inc/server_tools
+	./inc
+	./inc/client_tools
+	./inc/server_tools
 	libssh2-1.8.0/include
 )
 
-set(SRC_DIRECTORY "/home/user/Public/files_server_client_for_openwrt/src")
+set(SRC_DIRECTORY "./src")
 
 SET(CMAKE_CXX_COMPILER g++-5)
 set(CMAKE_CXX_STANDARD 11)
