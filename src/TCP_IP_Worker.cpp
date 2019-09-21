@@ -88,7 +88,7 @@ int         TCP_IP_Worker::tcp_connect(std::string ip, int port, int timeout_s) 
 }
 
 int         TCP_IP_Worker::tcp_send(std::string message) {
-    Encryptor   e;
+	Encryptor   e;
     char        *buff;
     int         size = 0;
 

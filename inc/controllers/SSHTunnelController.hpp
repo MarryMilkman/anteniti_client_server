@@ -3,7 +3,7 @@
 
 #include "lib.h"
 
-#define KVM_SERVICE_IP "192.168.1.218"
+#define KVM_SERVICE_IP "10.0.0.12"
 
 class SSHTunnelController {
 	SSHTunnelController();

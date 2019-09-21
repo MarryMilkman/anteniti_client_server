@@ -19,21 +19,21 @@ RouterInfoController &RouterInfoController::getInstance() {
 
 void                        RouterInfoController::refresh() {
 	// need write scripts for take info from system about routers (DHCP)
-    RouterData router_kube("192.168.1.1", "root", "11111111", 1231, "KUBE");
-    RouterData router_ubuntu_general("192.168.1.134", "user", "11111111", 1231, "01201905270000100001");
-    RouterData router_ubuntu_satelit("192.168.1.218", "user", "11111111", 1231, "01201905270000100001");
+    // RouterData router_kube("192.168.1.1", "root", "11111111", 1231, "KUBE");
+    RouterData router_ubuntu_general("192.168.1.134", "user", "11111111", 1231, "e4:95:6e:45:1d:e2");
+    // RouterData router_ubuntu_satelit("192.168.1.218", "user", "11111111", 1231, "01201905270000100001");
 
 
-    std::string line = ScriptExecutor::getOutput::execute(1, "/tmp/scripts/some.sh");
-    if (line == "ubuntu_general\n") {
+    // std::string line = ScriptExecutor::getOutput::execute(1, "/tmp/scripts/some.sh");
+    // if (line == "ubuntu_general\n") {
         this->_self_info = router_ubuntu_general;
-    }
-    else if (line == "ubuntu_satelit\n") {
-        this->_self_info = router_ubuntu_satelit;
-    }
-    else
-        this->_self_info = router_kube;
-    this->_list_routers.clear();
+    // }
+    // else if (line == "ubuntu_satelit\n") {
+    //     this->_self_info = router_ubuntu_satelit;
+    // }
+    // else
+    //     this->_self_info = router_kube;
+    // this->_list_routers.clear();
     // if (this->_self_info.ip != router_kube.ip)
     //     this->_list_routers.push_back(router_kube);
     // // if (this->_self_info.ip != router_ubuntu_satelit.ip)

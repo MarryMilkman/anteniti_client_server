@@ -41,21 +41,16 @@ std::string 	SSHTunnelController::get_instruction() {
 
 	this->_data_from_channel = "";
 	if (!this->_check_connection()) {
-		std::cerr << "No connect...\n";
+		// std::cerr << "No connect...\n";
 		return "";
 	}
 	if (this->_try_read_from_channel()) {
 		std::vector<std::string> 	data_segments;
 
 		data_segments = Parser::custom_split(this->_data_from_channel, "\n***DELIM***\n");
-		if (data_segments.size() < 2)
+		if (data_segments.size() != 2 ||  data_segments[0] != "Command")
 			return "";
-		std::cerr << "getted instruction: " << data_segments[0] << "\n";
-		if (data_segments[0] == SETTING_CHENGED) {
-			if (data_segments.size() == 2)
-				this->_write_setting_to_variable_file(data_segments[1]);
-		}
-		return data_segments[0];
+		return data_segments[1];
 	}
 	return "";
 }
@@ -92,6 +87,7 @@ bool 			SSHTunnelController::send_message(std::string message) {
 	int 	bytes = 0;
 	int 	len = message.size();
 
+	std::cerr << "SSHTunnelController: try send_message: " << message << "\n";
 	if (!this->_check_connection()) {
 		std::cerr << "fail send message by ssh tunnel\n";
 		return false;
@@ -151,7 +147,7 @@ bool 		SSHTunnelController::_check_connection() {
 		std::cerr << "SSHTunnelController: _remote_listenport: " << this->_remote_listenport << "\n";
 	}
 	if (!this->_channel) {
-		std::cerr << "channel not init\n";
+		// std::cerr << "channel not init\n";
 
 		if (!this->_refresh_channal())
 			return false;
@@ -230,7 +226,7 @@ int 		SSHTunnelController::_initSSHTools() {
 
 bool 	SSHTunnelController::_refresh_channal() {
 	if (!(this->_channel = libssh2_channel_forward_accept(this->_listener))) {
-		this->_print_error("libssh2_channel_forward_accept");
+		// this->_print_error("libssh2_channel_forward_accept");
 		// this->_clean_channel();
 		return false;
 	}

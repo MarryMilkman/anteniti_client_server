@@ -26,7 +26,7 @@ private:
 	SSHTunnelController 	&_ssh_tunnel_controller;
 
 	static std::mutex 	_mutex;
-
+	std::string 		_error_message;
 
 	void				_startWork();
 	void 				_init();
@@ -38,7 +38,7 @@ private:
 	void 		_thread_metod();
 	// cloud
 	void 				_get_new_key_and_notify();
-	void 				_sendErrorTo_cloud(std::vector<RouterData> &list_routers);
+	void 				_form_error_message(std::vector<RouterData> &list_routers);
 	int 				_sendSelfInfoTo_cloud();
 
 	// ssh
@@ -63,17 +63,7 @@ private:
 				int 					timeout);
 
 
-	class Tesst {
-	public:
-		void 	operator()() {
-			while (1) {
-				std::vector<RouterData> list_routers;
-				Server::_listenAnswers(list_routers, std::string(), 0, 0);
-				sleep(5);
-			}
-		}
 
-	};
 
 };
 

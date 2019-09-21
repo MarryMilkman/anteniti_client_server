@@ -63,7 +63,7 @@ bool 	Client::_listenBroadcast(int timeout) {
 	}
 
 	// -- setting -- setting -- setting -- setting --
-	else if (order == SETTING_CHENGED) {
+	else if (order == SETTING_CHANGED) {
 		if (!SettingController::getInstance().is_setting_chenge())
 			this->_sendAnswer(SETTING_NOT_DELIVERED, LISTEN_PORT);
 		else
