@@ -47,8 +47,10 @@ std::string 	SSHTunnelController::get_instruction() {
 	if (this->_try_read_from_channel()) {
 		std::vector<std::string> 	data_segments;
 
+		std::cerr << "geted data:\n" << this->_data_from_channel << "\n--------------------\n";
 		data_segments = Parser::custom_split(this->_data_from_channel, "\n***DELIM***\n");
-		if (data_segments.size() != 2 ||  data_segments[0] != "Command")
+		std::cerr << data_segments.size() << " : " << data_segments[0] << "\n";
+		if (data_segments.size() != 2 || data_segments[0] != "Command")
 			return "";
 		return data_segments[1];
 	}

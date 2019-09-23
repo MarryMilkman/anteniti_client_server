@@ -109,7 +109,7 @@ void	Server::_startWork() {
 	std::string 			instruction;
 
 
-	std::cerr << "Start work-------------------------------------------------\n";
+	std::cerr << "Start work---------------hi--------------------------------\n";
 	if (this->_setting_controller.is_setting_chenge())
 		this->_refresh_setting_in_mesh();
 	while (1) {
@@ -139,8 +139,8 @@ void	Server::_startWork() {
 			this->_ssh_tunnel_controller.send_message(MESSAGE_DELIVERED);
 			this->_get_info_from_routers_and_send_to_cloud(list_routers);
 		}
-		if (timer_send_serial_number.one_time_in(60))
-			this->_ssh_tunnel_controller.send_message(this->_info_controller.get_self_info().serial_number);
+		// if (timer_send_serial_number.one_time_in(60))
+		// 	this->_ssh_tunnel_controller.send_message(this->_info_controller.get_self_info().serial_number);
 	}
 }
 
@@ -344,12 +344,12 @@ int 	Server::_send_setting_to(std::string path_setting, std::vector<RouterData> 
 void 		Server::_get_info_from_routers_and_send_to_cloud(std::vector<RouterData> list_routers) {
 	std::vector<RouterData>	error_list;
 	int 					i;
-	std::string 			info;
+	std::string 			info = "";
 
 	i = 0;
-	info += "DeviceBegin" + ++i;
+	info += "DeviceBegin" + ++i + std::string("\n");
 	info += this->_info_controller.get_info_for_cloud();
-	info += "DeviceEnd" + i;
+	info += "DeviceEnd" + i + std::string("\n");
 	try {
 		this->_bc_controller.send(SEND_INFO, 10);
 		Server::_listenAnswers(list_routers, "Get information...", LISTEN_PORT, 1);
@@ -363,6 +363,7 @@ void 		Server::_get_info_from_routers_and_send_to_cloud(std::vector<RouterData> 
 		std::cerr << router.message << "\n- - - - - - -\n";
 	}
 	// parser.pars_and_add_to_answer(this->_info_controller.get_info_for_cloud());
+	std::cerr << info << "\n";
 	this->_cloud_controller.post_info_to_cloud(info);
 }
 

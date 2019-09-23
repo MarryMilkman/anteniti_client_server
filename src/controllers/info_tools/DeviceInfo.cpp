@@ -42,7 +42,7 @@ DeviceInfo::~DeviceInfo() {
 }
 
 std::string     DeviceInfo::get_string_info() {
-    std::string     info;
+    std::string     info = "";
     int             i = 1;
 
 	this->_refresh();
@@ -69,7 +69,7 @@ std::string     DeviceInfo::get_string_info() {
 }
 
 void 		DeviceInfo::_refresh() {
-	std::string		str_sysinfo = ScriptExecutor::getOutput::execute(1, "/tmp/scripts/sysinfo.sh");
+	std::string		str_sysinfo = ScriptExecutor::getOutput::execute(1, "/root/sysinfo.sh");
 	std::map<std::string, std::string>	map_sysinfo = Parser::Info::pars_sysinfo(str_sysinfo);
 
     this->_os = map_sysinfo["OS"];

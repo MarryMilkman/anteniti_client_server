@@ -165,35 +165,31 @@ eSettingStatus         SettingController::save_setting() {
 bool        SettingController::is_setting_chenge() {
     std::lock_guard<std::mutex> guard(SettingController::_mutex);
 
-    // eWorkMod        wm = StatusController::getInstance().getWorkMod();
+    eWorkMod        wm = StatusController::getInstance().getWorkMod();
     // static Timer    t;
 
     if (this->_list_new_setting.size()) {
         std::cerr << "List new setting alredy full\n";
         return true;
     }
-    // if (wm == eWorkMod::wm_server) {
-    if (this->_check_variable_file_setting()) {
-        return true;
-    } else {
-		std::fstream 	file(PATH_VARIABLE_SETTING);
+    if (wm == eWorkMod::wm_server) {
+	    if (this->_check_variable_file_setting()) {
+	        return true;
+	    } else {
+			std::fstream 	file(PATH_VARIABLE_SETTING);
 
-		if (file.is_open())
-			system("rm " PATH_VARIABLE_SETTING);
-	}
-        // if (t.one_time_in(2)) {
-        //     std::cerr << "Hmmm==\n";
-        //     CloudController::getInstance().get_setting_from_cloud();
-        //     std::cerr << "sssm==\n";
-        //     if (this->_check_variable_file_setting())
-        //         return true;
-        //     else
-        //         this->_delete_variable_file();
-        // }
-    // }
-    // else if (this->_check_variable_file_setting()) {
-    //     return true;
-    // }
+			if (file.is_open())
+				system("rm " PATH_VARIABLE_SETTING);
+		}
+        CloudController::getInstance().get_setting_from_cloud();
+        if (this->_check_variable_file_setting())
+            return true;
+        else
+            this->_delete_variable_file();
+    }
+    else if (this->_check_variable_file_setting()) {
+        return true;
+    }
     return false;
 }
 

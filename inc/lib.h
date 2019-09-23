@@ -54,7 +54,7 @@ enum eBroadcastType
 # define SEND_INFO "Send_info"
 # define SEND_SETTING_VERSION "Send_setting_version"
 
-# define SETTING_CHANGED "Setting_chenged"
+# define SETTING_CHANGED "Setting_changed"
 
 # define SETTING_DELIVERED "Setting_delivered"
 # define SETTING_NOT_DELIVERED "Setting_not_delivered"

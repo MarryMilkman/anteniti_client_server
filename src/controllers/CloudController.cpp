@@ -58,7 +58,7 @@ void            CloudController::post_info_to_cloud(std::string info) {
     CloudController::PostFilds  pf;
 
     pf.action = "send-info";
-    pf.serial_number = "01201905270000100001";
+    pf.serial_number = RouterInfoController::getInstance().get_self_info().serial_number;
     pf.text = info;
     pf.apikey = APIKEY;
 
@@ -75,13 +75,10 @@ void            CloudController::post_info_to_cloud(std::string info) {
 
 void            CloudController::get_setting_from_cloud() {
     std::cout << "cloud: get setting\n";
-    while (!this->_mutex.try_lock());
-    this->_mutex.unlock();
-    Lock    lock(this->_mutex, "CloudController");
     CloudController::PostFilds  pf;
 
     pf.action = "get-setting";
-    pf.serial_number = "01201905270000100001";
+    pf.serial_number = RouterInfoController::getInstance().get_self_info().serial_number;
     pf.apikey = APIKEY;
 
     if (this->_init_and_execute_post((char *)pf.get_postfilds(ePostType::forGetSetting).c_str(), (char *)CLOUD_URL)) {
