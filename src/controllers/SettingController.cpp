@@ -2,10 +2,11 @@
 #include "controllers/StatusController.hpp"
 #include "controllers/CloudController.hpp"
 
-
 #include "ScriptExecutor.hpp"
 #include "Timer.hpp"
 #include "Parser.hpp"
+
+std::mutex      SettingController::_mutex;
 
 SettingController::SettingController()
 {
@@ -44,7 +45,6 @@ int                     SettingController::get_version() {
 
 std::string             SettingController::get_str_unapply_options() {
     std::lock_guard<std::mutex> guard(SettingController::_mutex);
-
     std::string r_str;
 
     for (Setting unapply_setting : this->_list_unapply_setting)
@@ -127,6 +127,7 @@ eSettingStatus         SettingController::roolback_setting(std::vector<std::stri
         }
         if (!list_apply_setting.size()) {
             std::cerr << "Fail apply any setting\n";
+			this->_list_unapply_setting.clear();
             return eSettingStatus::sRoolbackFail;
         }
         this->_change_list_setting(list_apply_setting);
@@ -167,7 +168,8 @@ bool        SettingController::is_setting_chenge() {
 
     eWorkMod        wm = StatusController::getInstance().getWorkMod();
     // static Timer    t;
-
+	if (wm == eWorkMod::wm_client)
+		this->_list_new_setting.clear();
     if (this->_list_new_setting.size()) {
         std::cerr << "List new setting alredy full\n";
         return true;
@@ -251,7 +253,7 @@ int         SettingController::_approve_new_setting() {
         str_content_from_file += line + "\n";
     }
     file_var.close();
-    list_geted_setting = Parser::pars_setting(str_content_from_file);
+    list_geted_setting = Parser::pars_cloud_answer(str_content_from_file);
     size = list_geted_setting.size();
     for (Setting setting : this->_list_setting) {
         int i = 0;
@@ -428,10 +430,11 @@ int     SettingController::_find_setting_end_apply(std::string setting, std::str
     }
 //////////////DevicesSettingBegin///////////////
     else if (setting == "WifiName") {
-        // return exec_WifiName(value);
+        return this->_execution_wrapper_WiFiName(value);
+
     }
     else if (setting == "WifiPass") {
-        // return exec_WifiPass(value);
+        return this->_execution_wrapper_WiFiPass(value);
     }
     else if (setting == "WifiGuest") {
         // return exec_WifiGuest(value);
@@ -522,4 +525,57 @@ int     SettingController::_apply_group_setting(
     return 0;
 }
 
-std::mutex      SettingController::_mutex;
+
+// MARK : - Setting execution wrappers
+
+int 		SettingController::_execution_wrapper_WiFiName(std::string value) {
+	std::string	script(PATH_SETTING_SCRIPTS);
+	std::string	ssid(value);
+
+	script += "set_pass.sh";
+	std::cerr << "SHALOM!\n";
+	{
+		std::fstream 	file(script);
+
+		if (!file.is_open())
+			return 1;
+	}
+	if (!ssid.size())
+		return 1;
+	std::string 	env_ssid = "SSID=" + ssid;
+	ScriptExecutor::execute(2, env_ssid.c_str(), script.c_str());
+	return 0;
+}
+
+int 		SettingController::_execution_wrapper_WiFiPass(std::string value) {
+	std::string	script(PATH_SETTING_SCRIPTS);
+	std::string	ssid("");
+
+	script += "set_pass.sh";
+	{
+		std::fstream 	file(script);
+
+		if (!file.is_open())
+			return 1;
+	}
+	for (Setting &setting : this->_list_new_setting) {
+		if (setting.option == "WifiName") {
+			ssid = setting.value;
+			break ;
+		}
+	}
+	if (!ssid.size())
+		for (Setting &setting : this->_list_setting) {
+			if (setting.option == "WifiName") {
+				ssid = setting.value;
+				break ;
+			}
+		}
+	std::cerr << ssid << " : " << value << "\n";
+	if (!ssid.size())
+		return 1;
+	std::string 	env_path = "PASS=" + value;
+	std::string 	env_ssid = "SSID=" + ssid;
+	ScriptExecutor::execute(3, env_path.c_str(), env_ssid.c_str(), script.c_str());
+	return 0;
+}

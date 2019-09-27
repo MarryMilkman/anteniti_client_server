@@ -11,7 +11,6 @@ public:
             std::string ip,
             std::string login,
             std::string pass,
-            int port,
             std::string serial_number);
     RouterData(RouterData const & ref);
     ~RouterData();
@@ -20,7 +19,6 @@ public:
     std::string     ip;
     std::string     login;
     std::string     pass;
-    int             port;
     std::string     serial_number;
 
     bool            is_ok;

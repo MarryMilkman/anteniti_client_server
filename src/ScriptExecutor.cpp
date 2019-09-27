@@ -30,6 +30,8 @@ void     ScriptExecutor::execute(int count, ...) {
         script += va_arg(args, char *);
         script += " ";
     }
+	va_end(args);
+	std::cerr << script << "***from script executor\n";
 
     system(script.c_str());
 }
@@ -59,6 +61,7 @@ std::string ScriptExecutor::getOutput::execute(int count, ...) {
         script += va_arg(args, char *);
         script += " ";
     }
+	va_end(args);
 
 
     std::string     line;

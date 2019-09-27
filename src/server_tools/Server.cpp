@@ -13,10 +13,11 @@ Server::Server() :
 	_status_controller(StatusController::getInstance()),
 	_setting_controller(SettingController::getInstance()),
 	_cloud_controller(CloudController::getInstance()),
-	_ssh_tunnel_controller(SSHTunnelController::getInstance())
+	_ssh_tunnel_controller(SSHTunnelController::getInstance()),
+	_blocking_controller(BlockingController::getInstance())
 {
 	std::cout << "Server:\n";
-	this->_sendSelfInfoTo_cloud();
+	this->_info_controller.refresh_satellites_list();
 	// this->_get_new_key_and_notify();
 	this->_init();
 	this->_take_on_responsibility();
@@ -90,10 +91,12 @@ void 		Server::_take_on_responsibility() {
 	catch (std::exception &e) {}
 	// if (this->_setting_controller.is_setting_chenge())
 	if (this->_setting_controller.get_version() >= 0)
-		while (!this->_refresh_general_setting_in_mesh()) {
+		if (!this->_refresh_general_setting_in_mesh())
 			std::cerr << "Cant refresh setting in the mesh... AND WE JUST IN THE BEGININ!\n";
-			// exit(0);
-		}
+		// while (!this->_refresh_general_setting_in_mesh()) {
+		// 	std::cerr << "Cant refresh setting in the mesh... AND WE JUST IN THE BEGININ!\n";
+		// 	// exit(0);
+		// }
 	std::cerr << "end take on responsibility\n";
 }
 
@@ -130,8 +133,9 @@ void	Server::_startWork() {
 			else {
 				if (this->_refresh_setting_in_mesh())
 					this->_ssh_tunnel_controller.send_message(SETTING_APPLYED);
-				else
+				else {
 					this->_ssh_tunnel_controller.send_message(this->_error_message);
+				}
 			}
 		}
 		if (instruction == SEND_INFO) {
@@ -139,8 +143,17 @@ void	Server::_startWork() {
 			this->_ssh_tunnel_controller.send_message(MESSAGE_DELIVERED);
 			this->_get_info_from_routers_and_send_to_cloud(list_routers);
 		}
-		// if (timer_send_serial_number.one_time_in(60))
-		// 	this->_ssh_tunnel_controller.send_message(this->_info_controller.get_self_info().serial_number);
+		if (instruction == SEND_MAC) {
+			this->_ssh_tunnel_controller.send_message(this->_info_controller.get_self_info().serial_number);
+		}
+		if (instruction == BLOCKLIST_CHANGE) {
+			if (this->_refresh_blocklist_in_mesh())
+				this->_ssh_tunnel_controller.send_message(BLOCKLIST_APPLY);
+			else
+				this->_ssh_tunnel_controller.send_message(BLOCKLIST_NOT_APPLY);
+		}
+		if (timer_send_serial_number.one_time_in(60))
+			this->_info_controller.refresh_satellites_list();
 	}
 }
 
@@ -171,7 +184,7 @@ bool    	Server::_refresh_general_setting_in_mesh() {
 		}
 		this->_bc_controller.send(SETTING_APPLY, 10);
 		list_routers = this->_info_controller.get_routers_info();
-		Server::_listenAnswers(list_routers, SETTING_APPLYED, LISTEN_PORT, 2);
+		Server::_listenAnswers(list_routers, SETTING_APPLYED, LISTEN_PORT, 10);
 		for (RouterData router : list_routers)
 			if (!router.is_ok) {
 				std::cerr << router.ip << " fail apply: " << router.message << "\n";
@@ -199,7 +212,7 @@ bool 		Server::_refresh_setting_in_mesh() {
 	}
 	if (this->_order_applay_and_save_setting(list_routers)) {
 		std::cerr << "setting dont apply in all routers... Setting was rool back\n";
-		return true;
+		return false;
 	}
 	return true;
 }
@@ -261,6 +274,7 @@ int 		Server::_order_applay_and_save_setting(std::vector<RouterData> list_router
 	}
 	if ((setting_status = this->_setting_controller.apply_setting()) != eSettingStatus::sApplyOK) {
 		is_ok = false;
+		errors_list_routers.push_back(this->_info_controller.get_self_info());
 	}
 	Server::_listenAnswers(list_routers, SETTING_APPLYED, LISTEN_PORT, 1);
 
@@ -276,6 +290,8 @@ int 		Server::_order_applay_and_save_setting(std::vector<RouterData> list_router
 			string_with_answers_for_pars += SETTING_NOT_APPLYED;
 			string_with_answers_for_pars += " " + this->_setting_controller.get_str_unapply_options();
 			string_with_answers_for_pars += "\n";
+			std::cerr << string_with_answers_for_pars << "\n&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
+			this->_info_controller.get_self_info().message = string_with_answers_for_pars;
 		}
 			//
 		list_unaplly_options = Parser::pars_answer_apply(string_with_answers_for_pars);
@@ -311,7 +327,6 @@ int 		Server::_order_applay_and_save_setting(std::vector<RouterData> list_router
 
 	// send the setting by scp to routers in the received list
 int 	Server::_send_setting_to(std::string path_setting, std::vector<RouterData> &list_routers) {
-	RouterData 			server = this->_info_controller.get_server_info();
 	SSH_Worker 			ssh;
 
 	for (RouterData router : list_routers) {
@@ -319,12 +334,44 @@ int 	Server::_send_setting_to(std::string path_setting, std::vector<RouterData> 
 		ssh.ip = router.ip;
 		ssh.pass = router.pass;
 		if (ssh.scp(path_setting, PATH_VARIABLE_SETTING))
-		return -1;
+			return -1;
 	}
 	return 0;
 }
 
-// SETTING section -- END -- SETTING section -- END -- SETTING section -- END -- SETTING section
+
+
+
+
+// MARK : Blocking part
+
+bool		Server::_refresh_blocklist_in_mesh() {
+	std::vector<RouterData> 	list_routers;
+	SSH_Worker 					ssh;
+
+	this->_blocking_controller.download_list();
+	list_routers = this->_info_controller.get_routers_info();
+	for (RouterData router : list_routers) {
+		ssh.login = router.login;
+		ssh.ip = router.ip;
+		ssh.pass = router.pass;
+		if (ssh.scp(PATH_BLOCKLIST, PATH_BLOCKLIST))
+			return false;
+	}
+	try {
+		this->_bc_controller.send(BLOCKLIST_CHANGE, 10);
+	}
+	catch (std::exception &e) {
+		std::cerr << e.what() << "\n";
+		return false;
+	}
+	return this->_blocking_controller.apply();
+}
+
+
+
+
+
 
 
 
@@ -347,23 +394,23 @@ void 		Server::_get_info_from_routers_and_send_to_cloud(std::vector<RouterData> 
 	std::string 			info = "";
 
 	i = 0;
-	info += "DeviceBegin" + ++i + std::string("\n");
+	info += "RouterBegin" + std::to_string(++i) + std::string("\n");
 	info += this->_info_controller.get_info_for_cloud();
-	info += "DeviceEnd" + i + std::string("\n");
+	info += "RouterEnd" + std::to_string(i) + std::string("\n");
 	try {
 		this->_bc_controller.send(SEND_INFO, 10);
 		Server::_listenAnswers(list_routers, "Get information...", LISTEN_PORT, 1);
 	} catch (std::exception &e) {}
 	for (RouterData router : list_routers) {
-		info += "DeviceBegin" + std::to_string(++i) + "\n";
+		info += "RouterBegin" + std::to_string(++i) + "\n";
 		info += router.message;
-		info += "DeviceEnd" + std::to_string(i) + "\n";
+		info += "RouterEnd" + std::to_string(i) + "\n";
 		// router.is_ok = true;
 		std::cerr << "Info from ip " << router.ip << ":\n";
 		std::cerr << router.message << "\n- - - - - - -\n";
 	}
 	// parser.pars_and_add_to_answer(this->_info_controller.get_info_for_cloud());
-	std::cerr << info << "\n";
+	// std::cerr << info << "\n";
 	this->_cloud_controller.post_info_to_cloud(info);
 }
 
@@ -424,11 +471,6 @@ void Server::_listenAnswers(
 	}
 }
 
-	// send self info to cloud...
-int  	Server::_sendSelfInfoTo_cloud() {
-	return 0;
-}
-
 	// sending message about error in some routers by some reason to the cloud
 void 	Server::_form_error_message(std::vector<RouterData> &error_list_routers) {
 	this->_error_message = "";
@@ -439,6 +481,7 @@ void 	Server::_form_error_message(std::vector<RouterData> &error_list_routers) {
 		router_error_message << "SN: " << router.serial_number << ";\nError: " << router.message << "\n";
 		this->_error_message += router_error_message.str();
 	};
+	// std::cerr << "hello! --------------- " << this->_error_message;
 }
 
 std::mutex 		Server::_mutex;

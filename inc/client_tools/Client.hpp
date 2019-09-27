@@ -3,6 +3,12 @@
 
 #include "lib.h"
 
+#include "controllers/RouterInfoController.hpp"
+#include "controllers/BroadcastController.hpp"
+#include "controllers/SettingController.hpp"
+#include "controllers/StatusController.hpp"
+#include "controllers/BlockingController.hpp"
+
 class Client
 {
 public:
@@ -10,6 +16,12 @@ public:
 	~Client();
 
 private:
+	RouterInfoController	&_info_controller;
+	BroadcastController		&_bc_controller;
+	StatusController		&_status_controller;
+	SettingController		&_setting_controller;
+	BlockingController		&_blocking_controller;
+
 	void			_startWork();
 
 	bool 			_listenBroadcast(int timeout);

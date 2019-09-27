@@ -46,11 +46,15 @@ enum eBroadcastType
 # define NOTHING_TO_CHANGE "Nothing_to_change"
 # define MESSAGE_DELIVERED "Message_delivered"
 
-# define BLOCK_DEVICE "Block_device"
+# define BLOCKLIST_CHANGE "Block_list_changed"
+
+# define BLOCKLIST_APPLY "Blocklist_apply"
+# define BLOCKLIST_NOT_APPLY "Blocklist_not_apply"
 
 # define SERVER_MOD_LOCK "Server_mod_lock"
 # define SERVER_MOD_FREE "Server_mod_free"
 
+# define SEND_MAC "Send_mac"
 # define SEND_INFO "Send_info"
 # define SEND_SETTING_VERSION "Send_setting_version"
 

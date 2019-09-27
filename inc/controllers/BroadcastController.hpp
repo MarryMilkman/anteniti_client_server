@@ -3,7 +3,7 @@
 
 # include "lib.h"
 
-#define BCC_ADDR "192.168.1.255"
+#define BCC_ADDR "192.168.99.255"
 #define BCC_PORT 9390
 
 class BroadcastController

@@ -21,6 +21,7 @@ public:
     std::string     _type802;
     int             _signal;
     std::string     _timeWork;
+	std::string 	_inactiveTime;
     std::string     _location;
     std::string     _hostName;
     std::string     _ip;

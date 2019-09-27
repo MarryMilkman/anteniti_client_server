@@ -41,7 +41,7 @@ std::string 	SSHTunnelController::get_instruction() {
 
 	this->_data_from_channel = "";
 	if (!this->_check_connection()) {
-		// std::cerr << "No connect...\n";
+		std::cerr << "No connect...\n";
 		return "";
 	}
 	if (this->_try_read_from_channel()) {
@@ -134,14 +134,13 @@ bool 		SSHTunnelController::_check_connection() {
 	libssh2_session_set_timeout(this->_session, 5000);
 	if (!this->_listener) {
 		std::cerr << "listener not init\n";
-		int 	try_port = -1;
+		// int 	try_port = -1;
 
-		while (++try_port < 65536 && !this->_listener)
-			this->_listener = libssh2_channel_forward_listen_ex(this->_session,
-				this->_remote_listenaddr.c_str(), try_port, &this->_remote_listenport, 1);
+		// while (++try_port < 65536 && !this->_listener)
+		this->_listener = libssh2_channel_forward_listen_ex(this->_session,
+							this->_remote_listenaddr.c_str(), 0, &this->_remote_listenport, 1);
 
 		if (!this->_listener) {
-
 			this->_print_error("libssh2_channel_forward_listen_ex");
 			return false;
 		}
@@ -232,14 +231,16 @@ bool 	SSHTunnelController::_refresh_channal() {
 		// this->_clean_channel();
 		return false;
 	}
-	std::string 			intro_message;
-	RouterInfoController 	&info_controller = RouterInfoController::getInstance();
-	// int 					bytes = 0;
-	// int 					len;
-
-	intro_message = "intro\n***DELIM***\n";
-	intro_message += info_controller.get_self_info().serial_number;
-	return this->send_message(intro_message);
+	// std::string 			intro_message;
+	// RouterInfoController 	&info_controller = RouterInfoController::getInstance();
+	// // int 					bytes = 0;
+	// // int 					len;
+	//
+	// intro_message = "intro\n***DELIM***\n";
+	// intro_message += info_controller.get_self_info().serial_number;
+	// std::cerr << "try to send message:\n" << intro_message << "\n";
+	// return this->send_message(intro_message);
+	return true;
 }
 
 

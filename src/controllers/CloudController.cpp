@@ -1,6 +1,7 @@
 #include "controllers/CloudController.hpp"
 #include "controllers/RouterInfoController.hpp"
 #include "controllers/SettingController.hpp"
+#include "controllers/BlockingController.hpp"
 #include "Parser.hpp"
 #include "Mutex.hpp"
 
@@ -62,7 +63,7 @@ void            CloudController::post_info_to_cloud(std::string info) {
     pf.text = info;
     pf.apikey = APIKEY;
 
-    if (this->_init_and_execute_post((char *)pf.get_postfilds(ePostType::forSendInfo).c_str(), (char *)CLOUD_URL)) {
+    if (this->_init_and_execute_post((char *)pf.get_postfilds(ePostType::forSend).c_str(), (char *)CLOUD_URL)) {
         std::cerr << "Fail post_info_to_cloud\n";
         this->_clean_after_post();
         std::cerr << "end clean post_info_to_cloud\n";
@@ -81,7 +82,7 @@ void            CloudController::get_setting_from_cloud() {
     pf.serial_number = RouterInfoController::getInstance().get_self_info().serial_number;
     pf.apikey = APIKEY;
 
-    if (this->_init_and_execute_post((char *)pf.get_postfilds(ePostType::forGetSetting).c_str(), (char *)CLOUD_URL)) {
+    if (this->_init_and_execute_post((char *)pf.get_postfilds(ePostType::forGet).c_str(), (char *)CLOUD_URL)) {
         std::cerr << "Fail get_setting_from_cloud\n";
         this->_clean_after_post();
         return ;
@@ -89,11 +90,37 @@ void            CloudController::get_setting_from_cloud() {
     this->_clean_after_post();
 
     std::ofstream               f_new_setting(PATH_VARIABLE_SETTING);
-    std::vector<std::string>    list_new_setting = Parser::pars_setting(std::string(this->_response_mem.memory));
+    std::vector<std::string>    list_new_setting = Parser::pars_cloud_answer(std::string(this->_response_mem.memory));
 
     for (std::string setting : list_new_setting)
         f_new_setting << setting << "\n";
     f_new_setting.close();
+    // std::cerr << "Get setting: answer from cloud: " << this->_response_mem.memory << "\n";
+    // exit(0);
+    this->_response_mem.clean();
+}
+
+void            CloudController::get_blocklist_from_cloud() {
+    std::cout << "cloud: get blocklist\n";
+    CloudController::PostFilds  pf;
+
+    pf.action = "get-settingmac";
+    pf.serial_number = RouterInfoController::getInstance().get_self_info().serial_number;
+    pf.apikey = APIKEY;
+
+    if (this->_init_and_execute_post((char *)pf.get_postfilds(ePostType::forGet).c_str(), (char *)CLOUD_URL)) {
+        std::cerr << "Fail get_setting_from_cloud\n";
+        this->_clean_after_post();
+        return ;
+    }
+    this->_clean_after_post();
+
+    std::ofstream               f_new_blocklist(PATH_BLOCKLIST);
+    std::vector<std::string>    list_blocking_orders = Parser::pars_cloud_answer(std::string(this->_response_mem.memory));
+
+    for (std::string setting : list_blocking_orders)
+        f_new_blocklist << setting << "\n";
+    f_new_blocklist.close();
     // std::cerr << "Get setting: answer from cloud: " << this->_response_mem.memory << "\n";
     // exit(0);
     this->_response_mem.clean();
@@ -195,14 +222,14 @@ CloudController::PostFilds::~PostFilds() {}
 std::string CloudController::PostFilds::get_postfilds(ePostType type) {
     std::string pf;
 
-    if (type == ePostType::forSendInfo)
-        pf = this->_get_pf_for_send_info();
-    if (type == ePostType::forGetSetting)
-        pf = this->_get_pf_for_get_setting();
+    if (type == ePostType::forSend)
+        pf = this->_get_pf_for_send();
+    if (type == ePostType::forGet)
+        pf = this->_get_pf_for_get();
     return pf;
 }
 
-std::string CloudController::PostFilds::_get_pf_for_send_info() {
+std::string CloudController::PostFilds::_get_pf_for_send() {
     std::string postfilds = "";
 
     postfilds += "action=" + this->action + "&";
@@ -212,7 +239,7 @@ std::string CloudController::PostFilds::_get_pf_for_send_info() {
     return postfilds;
 }
 
-std::string CloudController::PostFilds::_get_pf_for_get_setting() {
+std::string CloudController::PostFilds::_get_pf_for_get() {
     std::string postfilds = "";
 
     postfilds += "action=" + this->action + "&";

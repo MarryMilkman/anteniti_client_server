@@ -8,6 +8,7 @@ DeviceInfo::DeviceInfo(RouterData rd) {
     this->_location = "unknown";
     this->_diod = false;
     this->_ip = rd.ip;
+	this->_sn = rd.serial_number;
 	this->_refresh();
 }
 
@@ -47,34 +48,35 @@ std::string     DeviceInfo::get_string_info() {
 
 	this->_refresh();
     info += "DeviceRouterInfoBegin\n";
-    info += "Status " + std::string(this->_status ? "on" : "off") + "\n";
-    info += "Signal " + std::to_string(this->_signal) + "%\n";
-    info += "Location " + this->_location + "\n";
-    info += "Diod " + std::string(this->_diod ? "on" : "off") + "\n";
-    info += "OS " + this->_os + "\n";
-    info += "Model " + this->_model + "\n";
-    info += "SN " + this->_sn + "\n";
-    info += "IP " + this->_ip + "\n";
-    info += "EtherA " + this->_etherA + "\n";
-    info += "EtherB " + this->_etherB + "\n";
-    info += "WifiA " + this->_wifiA + "\n";
-    info += "WifiB " + this->_wifiB + "\n";
+    // info += "Status: " + std::string(this->_status ? "on" : "off") + "\n";
+    // info += "Signal: " + std::to_string(this->_signal) + "%\n";
+    // info += "Location: " + this->_location + "\n";
+    // info += "Diod: " + std::string(this->_diod ? "on" : "off") + "\n";
+	info += "SN: " + this->_sn + "\n";
+	info += "IP: " + this->_ip + "\n";
+    info += "OS: " + this->_os + "\n";
+    info += "Model: " + this->_model + "\n";
+    info += "EtherA: " + this->_etherA + "\n";
+    info += "EtherB: " + this->_etherB + "\n";
+    info += "WifiA: " + this->_wifiA + "\n";
+    info += "WifiB: " + this->_wifiB + "\n";
     info += "DeviceRouterInfoEnd\n\n";
     for (ConnectedDeviceInfo dci : this->_list_connected_devices) {
-        info += "DeviceDeviceBegin" + std::to_string(i) + "\n";
+        info += "DeviceBegin" + std::to_string(i) + "\n";
         info += dci.get_string_info();
-        info += "DeviceDeviceEnd" + std::to_string(i++) + "\n";
+        info += "DeviceEnd" + std::to_string(i++) + "\n";
     }
     return info;
 }
 
 void 		DeviceInfo::_refresh() {
-	std::string		str_sysinfo = ScriptExecutor::getOutput::execute(1, "/root/sysinfo.sh");
+	std::string 						script = SCRIPT_PATH "sysinfo.sh";
+	std::string							str_sysinfo = ScriptExecutor::getOutput::execute(1, script.c_str());
 	std::map<std::string, std::string>	map_sysinfo = Parser::Info::pars_sysinfo(str_sysinfo);
 
     this->_os = map_sysinfo["OS"];
     this->_model = map_sysinfo["ModelName"];
-    this->_sn = map_sysinfo["SN"];
+    // this->_sn = map_sysinfo["SN"];
     this->_etherA = map_sysinfo["EtherA"];
     this->_etherB = map_sysinfo["EtherB"];
     this->_wifiA = map_sysinfo["WiFiA"];

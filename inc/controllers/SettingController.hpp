@@ -7,6 +7,9 @@
 #define PATH_SETTING "/tmp/setting/setting.system"
 #define PATH_COPY_SETTING "/tmp/setting/copy_setting.system"
 
+
+#define PATH_SETTING_SCRIPTS "/root/scripts/"
+
 # include "lib.h"
 # include "controllers/setting_tools/Setting.hpp"
 
@@ -58,6 +61,12 @@ private:
 // APPLY:
     int                 _find_setting_end_apply(std::string setting, std::string value);
     int                 _apply_group_setting(std::string setting, std::string value);
+
+// Setting execution wrapper
+
+	int 				_execution_wrapper_WiFiName(std::string value);
+	int 				_execution_wrapper_WiFiPass(std::string value);
+
 };
 
 #endif

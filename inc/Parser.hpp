@@ -13,7 +13,7 @@ public:
     std::string     get_answer_for_cloud();
 
 	static std::vector<std::string> custom_split(std::string str, std::string delim);
-    static std::vector<std::string> pars_setting(std::string setting_str);
+    static std::vector<std::string> pars_cloud_answer(std::string setting_str);
     static std::vector<std::string> pars_answer_apply(std::string str_with_answer);
 	class Info {
 	public:

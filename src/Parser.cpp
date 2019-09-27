@@ -37,13 +37,14 @@ std::vector<std::string> Parser::custom_split(std::string str, std::string delim
 			break;
 		}
 		str[i] = 0;
-		r_list.push_back(str.c_str());
+		if (i)
+			r_list.push_back(str.c_str());
 		str = (str.c_str() + i + delim.size());
 	}
 	return r_list;
 }
 
-std::vector<std::string>    Parser::pars_setting(std::string setting_str) {
+std::vector<std::string>    Parser::pars_cloud_answer(std::string setting_str) {
     std::vector<std::string>    r_list;
     int                         i = 0;
     int                         size;

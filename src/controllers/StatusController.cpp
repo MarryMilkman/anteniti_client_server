@@ -28,14 +28,14 @@ StatusController    &StatusController::getInstance() {
 // MARK : check is device master (have WAN)
 bool        StatusController::isWAN() {
     std::lock_guard<std::mutex> guard(StatusController::_mutex);
-
+	std::string 	script = SCRIPT_PATH "checkwan.sh";
     std::string     line;
 
-    std::cerr << "checkWAN\n";
-	return true;
+	// return true;
 	// return false;
-    line = ScriptExecutor::getOutput::checkWAN();
-    if (line == "Online\n")
+    line = ScriptExecutor::getOutput::execute(1, script.c_str());
+	std::cerr << "checkWAN " << line << "\n";
+    if (line == "1\n")
         return true;
     return false;
 }

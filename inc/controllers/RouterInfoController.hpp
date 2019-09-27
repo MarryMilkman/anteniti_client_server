@@ -12,10 +12,11 @@ public:
     static RouterInfoController &getInstance();
 
     void                        refresh();
+	void 						refresh_satellites_list();
 
-    std::vector<RouterData>     get_routers_info();
-    RouterData                  get_self_info();
-    RouterData                  get_server_info();
+    std::vector<RouterData>     &get_routers_info();
+    RouterData                  &get_self_info();
+    RouterData                  &get_server_info();
 
     std::string                 get_info_for_cloud();
 private:

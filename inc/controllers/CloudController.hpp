@@ -12,8 +12,8 @@
 #define SERTIFICATE_FILE_PATH "/home/user/Downloads/cacert.pem"
 
 enum ePostType {
-    forSendInfo = 0,
-    forGetSetting
+    forSend = 0,
+    forGet
 };
 
 typedef struct s_memoryStruct {
@@ -55,6 +55,7 @@ public:
 
     void    post_info_to_cloud(std::string info);
     void    get_setting_from_cloud();
+	void 	get_blocklist_from_cloud();
 
     std::string     get_response();
 
@@ -92,8 +93,8 @@ private:
 
         std::string     get_postfilds(ePostType type);
     private:
-        std::string     _get_pf_for_send_info();
-        std::string     _get_pf_for_get_setting();
+        std::string     _get_pf_for_send();
+        std::string     _get_pf_for_get();
     };
 
 
