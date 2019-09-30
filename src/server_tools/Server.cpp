@@ -17,6 +17,7 @@ Server::Server() :
 	_blocking_controller(BlockingController::getInstance())
 {
 	std::cout << "Server:\n";
+	time(&this->_time_last_request);
 	this->_info_controller.refresh_satellites_list();
 	// this->_get_new_key_and_notify();
 	this->_init();
@@ -110,12 +111,20 @@ void	Server::_startWork() {
 	Timer  					timer_wan;
 	Timer 					timer_send_serial_number;
 	std::string 			instruction;
+	time_t	 				time_peer_request = time(0) - this->_time_last_request;
 
 
 	std::cerr << "Start work---------------hi--------------------------------\n";
 	if (this->_setting_controller.is_setting_chenge())
 		this->_refresh_setting_in_mesh();
+	time(&this->_time_last_request);
 	while (1) {
+		time(&time_peer_request);
+		if ((time_peer_request - this->_time_last_request) > 1200) {
+			this->_ssh_tunnel_controller.disconnect_tunnel();
+			this->_ssh_tunnel_controller.send_message(this->_info_controller.get_self_info().serial_number);
+			time(&this->_time_last_request);
+		}
 		if (timer_wan.one_time_in(5) && !StatusController::isWAN()) {
 			std::cerr << "chalom =\\\n";
 			this->_ssh_tunnel_controller.disconnect_tunnel();
@@ -126,6 +135,10 @@ void	Server::_startWork() {
 		// 	this->_ssh_tunnel_controller.make_tunnel();
 		// 	continue ;
 		// }
+		if (timer_send_serial_number.one_time_in(60))
+			this->_info_controller.refresh_satellites_list();
+
+
 		instruction = this->_ssh_tunnel_controller.get_instruction();
 		if (instruction == SETTING_CHANGED) {
 			if (!this->_setting_controller.is_setting_chenge())
@@ -138,22 +151,24 @@ void	Server::_startWork() {
 				}
 			}
 		}
-		if (instruction == SEND_INFO) {
+		else if (instruction == SEND_INFO) {
 			std::vector<RouterData> list_routers = this->_info_controller.get_routers_info();
 			this->_ssh_tunnel_controller.send_message(MESSAGE_DELIVERED);
 			this->_get_info_from_routers_and_send_to_cloud(list_routers);
 		}
-		if (instruction == SEND_MAC) {
+		else if (instruction == SEND_MAC) {
 			this->_ssh_tunnel_controller.send_message(this->_info_controller.get_self_info().serial_number);
 		}
-		if (instruction == BLOCKLIST_CHANGE) {
+		else if (instruction == BLOCKLIST_CHANGE) {
 			if (this->_refresh_blocklist_in_mesh())
 				this->_ssh_tunnel_controller.send_message(BLOCKLIST_APPLY);
 			else
 				this->_ssh_tunnel_controller.send_message(BLOCKLIST_NOT_APPLY);
 		}
-		if (timer_send_serial_number.one_time_in(60))
-			this->_info_controller.refresh_satellites_list();
+		else {
+			continue;
+		}
+		time(&this->_time_last_request);
 	}
 }
 

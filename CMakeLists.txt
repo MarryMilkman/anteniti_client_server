@@ -19,7 +19,7 @@ set(SRC_DIRECTORY "./src")
 
 SET(CMAKE_CXX_COMPILER g++-5)
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -std=c++11 -Wall -Wextra -Werror -g -lssl")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -std=c++11 -g -lssl")
 
 
 set(SRC
@@ -32,6 +32,7 @@ set(SRC
 		${SRC_DIRECTORY}/controllers/CloudController.cpp
 
 		${SRC_DIRECTORY}/controllers/SettingController.cpp
+		${SRC_DIRECTORY}/controllers/BlockingController.cpp		
 		${SRC_DIRECTORY}/controllers/setting_tools/Setting.cpp
 
 		${SRC_DIRECTORY}/controllers/RouterInfoController.cpp

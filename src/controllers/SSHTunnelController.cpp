@@ -26,7 +26,7 @@ SSHTunnelController	&SSHTunnelController::getInstance() {
 // bool 			SSHTunnelController::is_tunnel_available() {
 // 	if (!this->_session)
 // 		return false;
-// 	// if (ibssh2_keepalive_send(this->session, 0))
+// 	// if (ssh2_keepalive_send(this->session, 0))
 // 		// return false;
 // 	return true;
 // }
@@ -65,8 +65,9 @@ bool 		SSHTunnelController::_try_read_from_channel() {
 	while (bytes) {
 		bytes = libssh2_channel_read(this->_channel, buff, sizeof(buff));
 		buff[bytes] = 0;
-		if (bytes == LIBSSH2_ERROR_EAGAIN || bytes == 0)
+		if (bytes == LIBSSH2_ERROR_EAGAIN || bytes == 0) {
 			break;
+		}
 		if (bytes < 0) {
 			this->_print_error("libssh2_channel_read");
 			return false;
@@ -78,10 +79,12 @@ bool 		SSHTunnelController::_try_read_from_channel() {
 
 		this->_clean_channel();
 	}
-	if (this->_data_from_channel.size())
+	if (this->_data_from_channel.size()) {
+		std::cerr << this->_data_from_channel << " - MESSAGE!\n";
 		return true;
+	}
 
-return false;
+	return false;
 }
 
 
@@ -99,7 +102,8 @@ bool 			SSHTunnelController::send_message(std::string message) {
 
 		if (i < 0) {
 			this->_print_error("libssh2_channel_write");
-			this->_clean_channel();
+			// this->_clean_channel();
+			this->_initSSHTools();
 			return false;
 		}
 		bytes += i;
@@ -108,13 +112,18 @@ bool 			SSHTunnelController::send_message(std::string message) {
 }
 
 void 	SSHTunnelController::disconnect_tunnel() {
-	if (this->_channel)
-        libssh2_channel_free(this->_channel);
-    if (this->_listener)
-        libssh2_channel_forward_cancel(this->_listener);
+	if (this->_channel) {
+		libssh2_channel_free(this->_channel);
+		this->_channel = 0;
+	}
+    if (this->_listener) {
+		libssh2_channel_forward_cancel(this->_listener);
+		this->_listener = 0;
+	}
 	if (this->_session) {
 		libssh2_session_disconnect(this->_session, "Client disconnecting normally");
 		libssh2_session_free(this->_session);
+		this->_session = 0 ;
 	}
 	if (this->_sock > 0) {
 		close(this->_sock);
@@ -126,12 +135,19 @@ void 	SSHTunnelController::disconnect_tunnel() {
 
 
 bool 		SSHTunnelController::_check_connection() {
+	int error_code = 0;
+
+	// if ((error_code = this->_print_error("SASAt")))
+	// 	std::cerr << error_code << "\n";
+	// 	sleep(1);
+
 	if (!this->_session) {
 		std::cerr << "sesion not init\n";
-		this->_initSSHTools();
-		return false;
+		if (this->_initSSHTools() || !this->_session)
+			return false;
 	}
-	libssh2_session_set_timeout(this->_session, 5000);
+
+
 	if (!this->_listener) {
 		std::cerr << "listener not init\n";
 		// int 	try_port = -1;
@@ -148,7 +164,7 @@ bool 		SSHTunnelController::_check_connection() {
 		std::cerr << "SSHTunnelController: _remote_listenport: " << this->_remote_listenport << "\n";
 	}
 	if (!this->_channel) {
-		// std::cerr << "channel not init\n";
+		std::cerr << "channel not init\n";
 
 		if (!this->_refresh_channal())
 			return false;
@@ -162,6 +178,7 @@ int 		SSHTunnelController::_initSSHTools() {
 	struct 	sockaddr_in addr;
 	int 	z = 1;
 
+	this->disconnect_tunnel();
 	if (!this->_sock)
 		this->_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	addr.sin_family = AF_INET;
@@ -176,18 +193,18 @@ int 		SSHTunnelController::_initSSHTools() {
 		this->_sock = 0;
 		return -1;
 	}
-	fd_set          readfds;
-	struct timeval  timeout;
-
-	timeout.tv_sec = 3;
-	timeout.tv_usec = 0;
-	FD_ZERO(&readfds);
-	FD_SET(this->_sock , &readfds);
-	int activity = select(this->_sock + 1, &readfds, 0, 0, &timeout);
-	if (activity <= 0) {
-		std::cerr << "connect timeout\n";
-		return -1;
-	}
+	// fd_set          readfds;
+	// struct timeval  timeout;
+	//
+	// timeout.tv_sec = 3;
+	// timeout.tv_usec = 0;
+	// FD_ZERO(&readfds);
+	// FD_SET(this->_sock , &readfds);
+	// int activity = select(this->_sock + 1, &readfds, 0, 0, &timeout);
+	// if (activity <= 0) {
+	// 	std::cerr << "connect timeout\n";
+	// 	return -1;
+	// }
 	if (connect(this->_sock, (struct sockaddr*)(&addr),
 				sizeof(struct sockaddr_in)) != 0) {
 		std::cerr << "Fail connect socket...\n";
@@ -222,10 +239,12 @@ int 		SSHTunnelController::_initSSHTools() {
 		this->disconnect_tunnel();
 		return -1;
 	}
+	// libssh2_keepalive_config(this->_session, 1, 60);
 	return 0;
 }
 
 bool 	SSHTunnelController::_refresh_channal() {
+	libssh2_session_set_timeout(this->_session, 5000);
 	if (!(this->_channel = libssh2_channel_forward_accept(this->_listener))) {
 		// this->_print_error("libssh2_channel_forward_accept");
 		// this->_clean_channel();
@@ -261,7 +280,7 @@ void 		SSHTunnelController::_clean_channel() {
 	this->_channel = 0;
 }
 
-void        SSHTunnelController::_print_error(std::string title) {
+int			SSHTunnelController::_print_error(std::string title) {
     char *errmsg;
     int errlen;
 	int err;
@@ -270,8 +289,17 @@ void        SSHTunnelController::_print_error(std::string title) {
     	err = libssh2_session_last_error(this->_session, &errmsg, &errlen, 0);
 	else {
 		std::cerr << "Session not init! Cant use libssh2_session_last_error\n";
-		return;
+		return -1;
 	}
     if (err)
         std::cerr << title << ": " << errmsg << "\n";
+	return err;
+}
+
+
+void 			*SSHTunnelController::_callback() {
+	SSHTunnelController 	&_ssh_tunnel_controller = SSHTunnelController::getInstance();
+
+	_ssh_tunnel_controller._initSSHTools();
+	return 0;
 }

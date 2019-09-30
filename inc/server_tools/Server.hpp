@@ -29,6 +29,7 @@ private:
 
 	static std::mutex 	_mutex;
 	std::string 		_error_message;
+	time_t 				_time_last_request;
 
 	void				_startWork();
 	void 				_init();

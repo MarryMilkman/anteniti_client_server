@@ -32,6 +32,7 @@ private:
 	std::string 		_remote_listenaddr;
 	std::string 		_data_from_channel;
 
+
 	int					_initSSHTools();
 
 	bool 				_check_connection();
@@ -43,7 +44,8 @@ private:
 	bool 				_refresh_channal();
 	void 				_clean_channel();
 
-	void 				_print_error(std::string mess);
+	int 				_print_error(std::string mess);
+	static void 		*_callback();
 };
 
 #endif
