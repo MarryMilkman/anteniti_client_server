@@ -37,24 +37,32 @@ SSHTunnelController	&SSHTunnelController::getInstance() {
 // 	return true;
 // }
 
-std::string 	SSHTunnelController::get_instruction() {
+std::map<std::string, std::string>	SSHTunnelController::get_instruction() {
 
 	this->_data_from_channel = "";
 	if (!this->_check_connection()) {
 		std::cerr << "No connect...\n";
-		return "";
+		throw std::exception();
 	}
 	if (this->_try_read_from_channel()) {
 		std::vector<std::string> 	data_segments;
 
-		std::cerr << "geted data:\n" << this->_data_from_channel << "\n--------------------\n";
 		data_segments = Parser::custom_split(this->_data_from_channel, "\n***DELIM***\n");
-		std::cerr << data_segments.size() << " : " << data_segments[0] << "\n";
-		if (data_segments.size() != 2 || data_segments[0] != "Command")
-			return "";
-		return data_segments[1];
+		if (data_segments.size() == 2) {
+			std::vector<std::string> 			command_explain_segment = Parser::custom_split(data_segments[0], "-");
+			std::map<std::string, std::string>	r_map;
+
+			if (command_explain_segment[0] != "Command")
+				throw std::exception();
+			r_map["instruction"] = data_segments[1];
+			if (r_map["instruction"] != SEND_MAC)
+				r_map["sn"] = command_explain_segment[1];
+			return r_map;
+		}
+			// throw std::exception();
 	}
-	return "";
+	throw std::exception();
+	// return "";
 }
 
 bool 		SSHTunnelController::_try_read_from_channel() {

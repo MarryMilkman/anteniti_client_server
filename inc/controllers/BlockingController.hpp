@@ -9,8 +9,9 @@
 enum eAccessLevel {
 	al_Blocked = 0,
 	al_Guest = 1,
-	al_User = 2,
-	al_Admin = 3
+	al_General = 2,
+	al_GuestGeneral = 3,
+	al_Smart = 4
 };
 
 struct BlockDevice {

@@ -41,6 +41,8 @@ enum eBroadcastType
     bct_WAN_wasChange
 };
 
+#define INCORRECT_ADDRESSEE "Incorrect_addressee"
+
 // define for comunicate:
 
 # define NOTHING_TO_CHANGE "Nothing_to_change"

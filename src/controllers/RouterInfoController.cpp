@@ -182,6 +182,18 @@ std::string             RouterInfoController::get_info_for_cloud() {
     return dev.get_string_info();
 }
 
+
+bool 			RouterInfoController::is_sn_from_mesh(std::string serial_number) {
+	if (this->_self_info.serial_number == serial_number)
+		return true;
+	for (RouterData router : this->_list_routers)
+		if (router.serial_number == serial_number)
+			return true;
+	return false;
+}
+
+
+
 std::mutex      RouterInfoController::_mutex;
 
 

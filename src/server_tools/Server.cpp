@@ -108,10 +108,10 @@ void 		Server::_take_on_responsibility() {
 	//		a)one in 2 period (10 sec) check connection to the internet (is WAN)
 	//		b)get info from mesh, and send it to Cloud
 void	Server::_startWork() {
-	Timer  					timer_wan;
-	Timer 					timer_send_serial_number;
-	std::string 			instruction;
-	time_t	 				time_peer_request = time(0) - this->_time_last_request;
+	Timer  								timer_wan;
+	Timer 								timer_send_serial_number;
+	std::map<std::string, std::string>	instr_data;
+	time_t	 							time_peer_request = time(0) - this->_time_last_request;
 
 
 	std::cerr << "Start work---------------hi--------------------------------\n";
@@ -138,9 +138,16 @@ void	Server::_startWork() {
 		if (timer_send_serial_number.one_time_in(60))
 			this->_info_controller.refresh_satellites_list();
 
-
-		instruction = this->_ssh_tunnel_controller.get_instruction();
-		if (instruction == SETTING_CHANGED) {
+		try {
+			instr_data = this->_ssh_tunnel_controller.get_instruction();
+			if (instr_data["instruction"] != SEND_MAC && !this->_info_controller.is_sn_from_mesh(instr_data["sn"])) {
+				this->_ssh_tunnel_controller.send_message(std::string(INCORRECT_ADDRESSEE) + " " + this->_info_controller.get_self_info().serial_number);
+				throw std::exception();
+			}
+		} catch (std::exception &e) {
+			continue;
+		}
+		if (instr_data["instruction"] == SETTING_CHANGED) {
 			if (!this->_setting_controller.is_setting_chenge())
 				this->_ssh_tunnel_controller.send_message(NOTHING_TO_CHANGE);
 			else {
@@ -151,15 +158,15 @@ void	Server::_startWork() {
 				}
 			}
 		}
-		else if (instruction == SEND_INFO) {
+		else if (instr_data["instruction"] == SEND_INFO) {
 			std::vector<RouterData> list_routers = this->_info_controller.get_routers_info();
 			this->_ssh_tunnel_controller.send_message(MESSAGE_DELIVERED);
 			this->_get_info_from_routers_and_send_to_cloud(list_routers);
 		}
-		else if (instruction == SEND_MAC) {
+		else if (instr_data["instruction"] == SEND_MAC) {
 			this->_ssh_tunnel_controller.send_message(this->_info_controller.get_self_info().serial_number);
 		}
-		else if (instruction == BLOCKLIST_CHANGE) {
+		else if (instr_data["instruction"] == BLOCKLIST_CHANGE) {
 			if (this->_refresh_blocklist_in_mesh())
 				this->_ssh_tunnel_controller.send_message(BLOCKLIST_APPLY);
 			else

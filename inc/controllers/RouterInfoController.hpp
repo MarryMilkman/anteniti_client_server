@@ -19,6 +19,8 @@ public:
     RouterData                  &get_server_info();
 
     std::string                 get_info_for_cloud();
+
+	bool 						is_sn_from_mesh(std::string serial_number);
 private:
     static std::mutex           _mutex;
 

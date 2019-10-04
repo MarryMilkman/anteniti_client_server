@@ -16,9 +16,9 @@ public:
 
 	// bool 			is_tunnel_available();
 	// bool 			make_tunnel();
-	std::string 	get_instruction();
-	bool 			send_message(std::string message);
-	void 			disconnect_tunnel();
+	std::map<std::string, std::string> 	get_instruction();
+	bool 								send_message(std::string message);
+	void 								disconnect_tunnel();
 
 	void 	start();
 

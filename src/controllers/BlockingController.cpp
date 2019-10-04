@@ -30,11 +30,14 @@ bool 		BlockingController::download_list() {
 		ss >> block_d.mac;
 		ss >> status;
 		try {
+			std::cerr << "hello\n";
 			block_d.access_level = static_cast<eAccessLevel>(std::stoi(status));
+			std::cerr << block_d.mac << " " << block_d.access_level << "\n";
+
+			this->_tmp_block_list.push_back(block_d);
 		} catch (std::exception &e) {
 			block_d.access_level = eAccessLevel::al_Blocked;
 		}
-		this->_tmp_block_list.push_back(block_d);
 	}
 	return true;
 }
@@ -46,31 +49,32 @@ bool		BlockingController::apply() {
 
 	if (!file_blocklist.is_open())
 		return false;
-	while (getline(file_blocklist, line)) {
-		std::stringstream 	ss(line);
-		BlockDevice			block_d;
-		std::string 		status;
-
-		ss >> block_d.mac;
-		ss >> status;
-		try {
-			block_d.access_level = static_cast<eAccessLevel>(std::stoi(status));
-		} catch (std::exception &e) {
-			block_d.access_level = eAccessLevel::al_Blocked;
-		}
-		this->_tmp_block_list.push_back(block_d);
-	}
+	// while (getline(file_blocklist, line)) {
+	// 	std::stringstream 	ss(line);
+	// 	BlockDevice			block_d;
+	// 	std::string 		status;
+	//
+	// 	ss >> block_d.mac;
+	// 	ss >> status;
+	// 	try {
+	// 		block_d.access_level = static_cast<eAccessLevel>(std::stoi(status));
+	// 	} catch (std::exception &e) {
+	// 		block_d.access_level = eAccessLevel::al_Blocked;
+	// 	}
+	// 	this->_tmp_block_list.push_back(block_d);
+	// }
 
 	for (BlockDevice block_d : this->_tmp_block_list) {
 		std::string script;
 
 		std::cerr << block_d.mac << " " << block_d.access_level << "\n";
 		if (block_d.access_level == eAccessLevel::al_Blocked)
-			script = SCRIPT_PATH "blocklist.sh";
-		else
-			script = SCRIPT_PATH "unblocklist.sh";
+			script = SCRIPT_PATH "delfromlan.sh";
+		if (block_d.access_level == al_General || block_d.access_level == eAccessLevel::al_GuestGeneral)
+			script = SCRIPT_PATH "addtolan.sh";
 		ScriptExecutor::execute(2, script.c_str(), block_d.mac.c_str());
 	}
+	// system("wifi reload");
 	this->_tmp_block_list.clear();
 	return true;
 }
