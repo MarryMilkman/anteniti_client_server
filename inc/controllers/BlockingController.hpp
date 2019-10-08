@@ -39,6 +39,9 @@ public:
 private:
 	std::vector<BlockDevice>	_tmp_block_list;
 
+	bool 		_is_mac_from(std::string mac, std::string name_network);
+
+
 };
 
 

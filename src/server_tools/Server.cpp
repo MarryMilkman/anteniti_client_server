@@ -125,7 +125,7 @@ void	Server::_startWork() {
 			this->_ssh_tunnel_controller.send_message(this->_info_controller.get_self_info().serial_number);
 			time(&this->_time_last_request);
 		}
-		if (timer_wan.one_time_in(5) && !StatusController::isWAN()) {
+		if (timer_wan.one_time_in(10) && !StatusController::isWAN()) {
 			std::cerr << "chalom =\\\n";
 			this->_ssh_tunnel_controller.disconnect_tunnel();
 			return;
@@ -371,7 +371,8 @@ bool		Server::_refresh_blocklist_in_mesh() {
 	std::vector<RouterData> 	list_routers;
 	SSH_Worker 					ssh;
 
-	this->_blocking_controller.download_list();
+	if (!this->_blocking_controller.download_list())
+		return true;
 	list_routers = this->_info_controller.get_routers_info();
 	for (RouterData router : list_routers) {
 		ssh.login = router.login;

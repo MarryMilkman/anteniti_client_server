@@ -160,27 +160,34 @@ std::string             RouterInfoController::get_info_for_cloud() {
 			while (getline(ss_station, line)) {
 				std::vector<std::string>	params_sigments = Parser::custom_split(line, ":");
 
-				std::cerr << params_sigments[0] << "\n----------------------------------\n";
+				// std::cerr << params_sigments[0] << "\n----------------------------------\n";
 				if (params_sigments.size() != 2)
 					continue;
+				std::stringstream 			custom_ss(params_sigments[1]);
+				std::string 				value;
+
+				custom_ss >> value;
+				// std::cerr << value << "*****************\n";
 				if (params_sigments[0] == "signal") {
 					try {
 						connectDevice._signal = std::stoi(params_sigments[1]);
 					} catch (std::exception &e) {}
 				}
 				if (params_sigments[0] == "connected time") {
-					connectDevice._timeWork = params_sigments[1];
+					connectDevice._timeWork = value;
 				}
 				if (params_sigments[0] == "inactive time") {
-					connectDevice._inactiveTime = params_sigments[1];
+					connectDevice._inactiveTime = value;
 				}
 			}
+			connectDevice.set_nick_ip();
 			dev._list_connected_devices.push_back(connectDevice);
 		}
 	}
-
     return dev.get_string_info();
 }
+
+
 
 
 bool 			RouterInfoController::is_sn_from_mesh(std::string serial_number) {

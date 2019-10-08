@@ -14,6 +14,7 @@ public:
 private:
     bool        _status;
     time_t      _t;
+	time_t 		_last_activity;
 };
 
 #endif

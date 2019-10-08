@@ -31,8 +31,6 @@ bool        StatusController::isWAN() {
 	std::string 	script = SCRIPT_PATH "checkwan.sh";
     std::string     line;
 
-	// return true;
-	// return false;
     line = ScriptExecutor::getOutput::execute(1, script.c_str());
 	std::cerr << "checkWAN " << line << "\n";
     if (line == "1\n")

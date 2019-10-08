@@ -63,7 +63,6 @@ std::string ScriptExecutor::getOutput::execute(int count, ...) {
     }
 	va_end(args);
 
-
     std::string     line;
     char            buff[64];
     FILE            *pipe;

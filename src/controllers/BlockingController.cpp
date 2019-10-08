@@ -30,7 +30,6 @@ bool 		BlockingController::download_list() {
 		ss >> block_d.mac;
 		ss >> status;
 		try {
-			std::cerr << "hello\n";
 			block_d.access_level = static_cast<eAccessLevel>(std::stoi(status));
 			std::cerr << block_d.mac << " " << block_d.access_level << "\n";
 
@@ -39,6 +38,8 @@ bool 		BlockingController::download_list() {
 			block_d.access_level = eAccessLevel::al_Blocked;
 		}
 	}
+	if (!this->_tmp_block_list.size())
+		return false;
 	return true;
 }
 
@@ -49,36 +50,42 @@ bool		BlockingController::apply() {
 
 	if (!file_blocklist.is_open())
 		return false;
-	// while (getline(file_blocklist, line)) {
-	// 	std::stringstream 	ss(line);
-	// 	BlockDevice			block_d;
-	// 	std::string 		status;
-	//
-	// 	ss >> block_d.mac;
-	// 	ss >> status;
-	// 	try {
-	// 		block_d.access_level = static_cast<eAccessLevel>(std::stoi(status));
-	// 	} catch (std::exception &e) {
-	// 		block_d.access_level = eAccessLevel::al_Blocked;
-	// 	}
-	// 	this->_tmp_block_list.push_back(block_d);
-	// }
 
 	for (BlockDevice block_d : this->_tmp_block_list) {
-		std::string script;
+		std::string script = "";
 
 		std::cerr << block_d.mac << " " << block_d.access_level << "\n";
 		if (block_d.access_level == eAccessLevel::al_Blocked)
 			script = SCRIPT_PATH "delfromlan.sh";
-		if (block_d.access_level == al_General || block_d.access_level == eAccessLevel::al_GuestGeneral)
+		if (block_d.access_level == al_General || block_d.access_level == eAccessLevel::al_GuestGeneral) {
+			if (this->_is_mac_from(block_d.mac, "lan"))
+				continue;
 			script = SCRIPT_PATH "addtolan.sh";
-		ScriptExecutor::execute(2, script.c_str(), block_d.mac.c_str());
+		}
+		// if (block_d.access_level == al_Guest || block_d.access_level == eAccessLevel::al_GuestGeneral) {
+		// 	if (!this->_is_mac_from(block_d.mac, "guest"))
+		// 		continue;
+		// 	script = SCRIPT_PATH "addtoguest.sh";
+		// }
+		if (script.size() && block_d.mac.size())
+			ScriptExecutor::execute(2, script.c_str(), block_d.mac.c_str());
 	}
 	// system("wifi reload");
 	this->_tmp_block_list.clear();
 	return true;
 }
 
+bool 		BlockingController::_is_mac_from(std::string mac, std::string name_network) {
+	std::string script;
+	std::string result;
+
+	script = std::string(SCRIPT_PATH "is_mac_in_list_") + (name_network + ".sh");
+	result = ScriptExecutor::getOutput::execute(2, script.c_str(), mac.c_str());
+	std::cerr << "RESULT: *" << result << "*\n";
+	if (result == "1\n")
+		return true;
+	return false;
+}
 
 
 

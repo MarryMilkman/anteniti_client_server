@@ -14,8 +14,10 @@ public:
     ~ConnectedDeviceInfo();
 
     std::string     get_string_info();
+	void 			set_nick_ip();
 
-    std::string     _nik;
+
+    std::string     _nick;
     std::string     _group;
     std::string     _typeConn;
     std::string     _type802;
