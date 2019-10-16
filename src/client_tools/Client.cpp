@@ -29,11 +29,11 @@ void 	Client::_startWork() {
 
 	while (1) {
 		this->_listenBroadcast(10);
-		// if (!this->_status_controller.server_availabilit) {
-		// 	if (this->_setting_controller.is_setting_chenge() || StatusController::isWAN()) {
-		// 		throw CustomException(eExceptType::e_need_server_work_mod);
-		// 	}
-		// }
+		if (!this->_status_controller.server_availabilit) {
+			if (/*this->_setting_controller.is_setting_chenge() &&*/ StatusController::isWAN()) {
+				throw CustomException(eExceptType::e_need_server_work_mod);
+			}
+		}
 	}
 }
 

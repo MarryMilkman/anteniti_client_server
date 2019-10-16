@@ -8,7 +8,7 @@ SSHTunnelController::SSHTunnelController() {
 	this->_session = 0;
 	this->_channel = 0;
 	this->_sock = 0;
-	this->_remote_listenaddr = "127.0.0.2";
+	this->_remote_listenaddr = "127.0.0.1";
 	this->_remote_listenport = 1;
 	this->_initSSHTools();
 }
@@ -235,8 +235,8 @@ int 		SSHTunnelController::_initSSHTools() {
 		return -1;
 	}
 // AUTHORIZATION ---------------------------------------------------------------
-	std::string 	username = "user";
-	std::string 	pass = "11111111";
+	std::string 	username = SSH_TUNNEL_USERNAME;
+	std::string 	pass = SSH_TUNNEL_PASSWORD;
 	std::string 	userauthlist;
 
 	// libssh2_hostkey_hash(this->_session, LIBSSH2_HOSTKEY_HASH_SHA1);

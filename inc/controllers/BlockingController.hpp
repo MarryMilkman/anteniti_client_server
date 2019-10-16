@@ -7,12 +7,34 @@
 #define PATH_BLOCKLIST "/tmp/blocking/blocking.txt"
 
 enum eAccessLevel {
-	al_Blocked = 0,
-	al_Guest = 1,
-	al_General = 2,
-	al_GuestGeneral = 3,
+	al_Limited = 0,
+	al_Blocked = 1,
+	al_Guest = 2,
+	al_General = 3,
+	// al_GuestGeneral = 3,
 	al_Smart = 4
 };
+
+// 0 || wlan0 - general 2.4g
+// 1 - mesh
+// 2 || wlan0-1 - 192.168.1.3 - back
+// 3 || wlan1-1 - general 5g
+// 4 || wlan0-2 - sump 2.4g
+// 5 || wlan1-2 - sump 5g
+// 6 - anteniti
+// 7 || wlan0-3 - guest 2.4
+// 8 || wlan1-3 - guest 5g
+
+enum eNumWireless {
+	nw_General = 0, // 3
+	nw_General5 = 3,
+	nw_Sump = 4, // 5
+	nw_Sump5 = 5,
+	nw_Guest = 7, // 8
+	nw_Guest5 = 8,
+	nw_Smurt = -1
+};
+
 
 struct BlockDevice {
 	BlockDevice();
@@ -39,8 +61,15 @@ public:
 private:
 	std::vector<BlockDevice>	_tmp_block_list;
 
-	bool 		_is_mac_from(std::string mac, std::string name_network);
+	void 		_get_block_list_from_file();
+	bool 		_is_mac_from(std::string mac, eNumWireless num_wireless);
 
+	void 		_makeLimited(std::string mac);
+	void 		_makeBlocked(std::string mac);
+	void 		_makeGuest(std::string mac);
+	void 		_makeGeneral(std::string mac);
+	void 		_makeSmart(std::string mac);
+	void 		_wifi_relaod();
 
 };
 

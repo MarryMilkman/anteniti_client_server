@@ -5,6 +5,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+
+#include <sys/wait.h>
+
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
@@ -32,7 +35,7 @@
 #include "RouterData.hpp"
 
 
-std::vector<std::string>    custom_split(std::string str, std::string delim);
+// std::vector<std::string>    custom_split(std::string str, std::string delim);
 
 
 enum eBroadcastType

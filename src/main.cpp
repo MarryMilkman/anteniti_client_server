@@ -9,6 +9,7 @@
 #include "controllers/RouterInfoController.hpp"
 #include "controllers/BroadcastController.hpp"
 #include "controllers/CloudController.hpp"
+#include "controllers/NotificationController.hpp"
 
 #include <curl/curl.h>
 
@@ -52,6 +53,7 @@ int main(int argc, char const *argv[])
 	SettingController::getInstance();
 	RouterInfoController::getInstance();
 	BroadcastController::getInstance();
+	NotificationController::getInstance();
 
 	std::cerr << "init constructor end\n";
 

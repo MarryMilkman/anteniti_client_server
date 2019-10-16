@@ -33,9 +33,9 @@ int             CloudController::_get_ssl_sert() {
         curl_easy_setopt(this->_curl, CURLOPT_WRITEFUNCTION, CloudController::_writeMemoryCallback);
         curl_easy_setopt(this->_curl, CURLOPT_WRITEDATA, &this->_ssl_certificate_mem);
         curl_easy_setopt(this->_curl, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_easy_setopt(this->_curl, CURLOPT_TIMEOUT, 2);
+        curl_easy_setopt(this->_curl, CURLOPT_TIMEOUT, 30);
 
-        // curl_easy_setopt(this->_curl, CURLOPT_VERBOSE, 1);
+        curl_easy_setopt(this->_curl, CURLOPT_VERBOSE, 1);
 
         res = curl_easy_perform(this->_curl);
         if(res != CURLE_OK) {

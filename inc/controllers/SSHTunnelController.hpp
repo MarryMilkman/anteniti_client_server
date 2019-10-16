@@ -5,6 +5,8 @@
 
 // #define KVM_SERVICE_IP "10.0.0.12"
 #define KVM_SERVICE_IP "91.145.198.4"
+#define SSH_TUNNEL_PASSWORD "seletskiy99"
+#define SSH_TUNNEL_USERNAME "user"
 
 class SSHTunnelController {
 	SSHTunnelController();

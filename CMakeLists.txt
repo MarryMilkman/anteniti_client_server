@@ -30,9 +30,10 @@ set(SRC
 		${SRC_DIRECTORY}/controllers/BroadcastController.cpp
 		${SRC_DIRECTORY}/controllers/StatusController.cpp
 		${SRC_DIRECTORY}/controllers/CloudController.cpp
+		${SRC_DIRECTORY}/controllers/NotificationController.cpp
 
 		${SRC_DIRECTORY}/controllers/SettingController.cpp
-		${SRC_DIRECTORY}/controllers/BlockingController.cpp		
+		${SRC_DIRECTORY}/controllers/BlockingController.cpp
 		${SRC_DIRECTORY}/controllers/setting_tools/Setting.cpp
 
 		${SRC_DIRECTORY}/controllers/RouterInfoController.cpp

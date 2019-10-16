@@ -14,7 +14,8 @@ Server::Server() :
 	_setting_controller(SettingController::getInstance()),
 	_cloud_controller(CloudController::getInstance()),
 	_ssh_tunnel_controller(SSHTunnelController::getInstance()),
-	_blocking_controller(BlockingController::getInstance())
+	_blocking_controller(BlockingController::getInstance()),
+	_notification_controller(NotificationController::getInstance())
 {
 	std::cout << "Server:\n";
 	time(&this->_time_last_request);
@@ -120,6 +121,7 @@ void	Server::_startWork() {
 	time(&this->_time_last_request);
 	while (1) {
 		time(&time_peer_request);
+		this->_notification_controller.check_and_send();
 		if ((time_peer_request - this->_time_last_request) > 1200) {
 			this->_ssh_tunnel_controller.disconnect_tunnel();
 			this->_ssh_tunnel_controller.send_message(this->_info_controller.get_self_info().serial_number);
@@ -172,6 +174,10 @@ void	Server::_startWork() {
 			else
 				this->_ssh_tunnel_controller.send_message(BLOCKLIST_NOT_APPLY);
 		}
+		// else if (instr_data["instruction"] == APDATE_SYSTEM) {
+		// 	this->_ssh_tunnel_controller.send_message(MESSAGE_DELIVERED);
+		// 	this->_update_system_mesh();
+		// }
 		else {
 			continue;
 		}
