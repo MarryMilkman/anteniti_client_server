@@ -11,15 +11,19 @@ RouterInfoController::RouterInfoController() {
 RouterInfoController::~RouterInfoController() {}
 
 RouterInfoController &RouterInfoController::getInstance() {
-    Lock    lock(RouterInfoController::_mutex, "RouterInfoController");
-    static RouterInfoController info_controller;
+	static RouterInfoController info_controller;
 
     info_controller.refresh();
     return info_controller;
 }
 
 void                        RouterInfoController::refresh() {
-	// need write scripts for take info from system about routers (DHCP)
+	std::unique_lock<std::mutex>	ul(this->_mutex, std::try_to_lock);
+
+	if (!ul.owns_lock()) {
+		std::lock_guard<std::mutex> lg(this->_mutex);
+		return ;
+	}
     RouterData			router("", "root", "11111111", "");
 	std::string 		script = SCRIPT_PATH "self_mac_ip.sh";
 	std::stringstream 	ss_self_mac_ip(ScriptExecutor::getOutput::execute(1, script.c_str()));
@@ -86,11 +90,14 @@ RouterData                  &RouterInfoController::get_self_info(){
 }
 
 RouterData                  &RouterInfoController::get_server_info(){
-    std::fstream                config_file;
-    std::string                 ip;
-    // struct sockaddr_in          c_addr;
-    // Lock    lock(RouterInfoController::_mutex, "RouterInfoController");
+    std::fstream                	config_file;
+    std::string                 	ip;
+	std::unique_lock<std::mutex>	ul(this->_mutex, std::try_to_lock);
 
+	if (!ul.owns_lock()) {
+		std::lock_guard<std::mutex> lg(this->_mutex);
+		return this->_server_info;
+	}
     config_file.open(CONFIG_FILE_PATH);
     getline(config_file, ip);
 	std::cerr << "RouterInfoController::get_server_info, CONFIG_FILE_PATH, ip: *" << ip << "*\n";
@@ -198,10 +205,6 @@ bool 			RouterInfoController::is_sn_from_mesh(std::string serial_number) {
 			return true;
 	return false;
 }
-
-
-
-std::mutex      RouterInfoController::_mutex;
 
 
 

@@ -14,7 +14,7 @@ BroadcastController::~BroadcastController() {
 }
 
 BroadcastController &BroadcastController::getInstance() {
-    Lock    lock(BroadcastController::_mutex, "BroadcastController");
+    // Lock    lock(BroadcastController::_mutex, "BroadcastController");
     static BroadcastController  bc_controller;
 
     return bc_controller;
@@ -31,7 +31,7 @@ void    BroadcastController::send(std::string message, int nbr_iterat) {
     buff = e.encrypt(message);
     encrypt_mess = buff;
     free(buff);
-    Lock    lock(BroadcastController::_mutex, "BroadcastController");
+    // Lock    lock(BroadcastController::_mutex, "BroadcastController");
     this->_dataInit_send();
     std::cerr << "Broadcast send: " << message << "\n";
     while(++i < nbr_iterat)
@@ -77,7 +77,7 @@ int     BroadcastController::receive(int timeout_s) {
 
     timeout.tv_sec = timeout_s;
     timeout.tv_usec = 0;
-    Lock    lock(BroadcastController::_mutex, "BroadcastController");
+    // Lock    lock(BroadcastController::_mutex, "BroadcastController");
     this->_dataInit_recave();
     sendaddr_len = sizeof(this->_sendaddr);
     FD_ZERO(&readfds);
@@ -155,9 +155,9 @@ bool            BroadcastController::_is_cast_from_server() {
 
     //
 std::string     BroadcastController::get_message() const {
-    Lock    lock(BroadcastController::_mutex, "BroadcastController");
+    // Lock    lock(BroadcastController::_mutex, "BroadcastController");
 
     return this->_message;
 }
 
-std::mutex   BroadcastController::_mutex;
+// std::mutex   BroadcastController::_mutex;

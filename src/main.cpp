@@ -53,20 +53,26 @@ int main(int argc, char const *argv[])
 	SettingController::getInstance();
 	RouterInfoController::getInstance();
 	BroadcastController::getInstance();
-	NotificationController::getInstance();
+	NotificationController &_notification_controller = NotificationController::getInstance();
 
-	std::cerr << "init constructor end\n";
+	std::cerr << "init controllers end\n";
 
 
 	FlagsHendler f = FlagsHendler(argc, argv, host, port, mod);
+	std::thread 	thread_notification(std::ref(_notification_controller));
+	thread_notification.detach();
+	// sleep(1);
 //////////////////////
 	if (mod == 0)
 		Server();
 	else if (mod == 1)
 		Client();
 //////////////////////
-	while (1)
+	while (1) {
+		std::cerr << "hmmmmmmmmmmmmmmmmmmmmmmm\n";
 		StatusController::getInstance().choiceModWork();
-	// libssh2_exit();
+	}
+	if (thread_notification.joinable())
+		thread_notification.join();
 	return 0;
 }

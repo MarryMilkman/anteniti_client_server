@@ -10,7 +10,6 @@
 #include "controllers/CloudController.hpp"
 #include "controllers/SSHTunnelController.hpp"
 #include "controllers/BlockingController.hpp"
-#include "controllers/NotificationController.hpp"
 
 class Server
 {
@@ -27,7 +26,6 @@ private:
 	CloudController 		&_cloud_controller;
 	SSHTunnelController 	&_ssh_tunnel_controller;
 	BlockingController		&_blocking_controller;
-	NotificationController	&_notification_controller;
 
 	static std::mutex 	_mutex;
 	std::string 		_error_message;

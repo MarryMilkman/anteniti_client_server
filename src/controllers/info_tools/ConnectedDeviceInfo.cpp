@@ -70,6 +70,8 @@ void 			ConnectedDeviceInfo::set_nick_ip() {
 	ss << info;
 	ss >> this->_ip;
 	ss >> this->_nick;
+	if (!this->_nick.size())
+		this->_nick = "unknown";
 }
 
 

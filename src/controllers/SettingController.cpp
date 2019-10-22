@@ -1,14 +1,15 @@
 #include "controllers/SettingController.hpp"
-#include "controllers/StatusController.hpp"
-#include "controllers/CloudController.hpp"
+
 
 #include "ScriptExecutor.hpp"
 #include "Timer.hpp"
 #include "Parser.hpp"
 
-std::mutex      SettingController::_mutex;
+// std::mutex      SettingController::_mutex;
 
-SettingController::SettingController()
+SettingController::SettingController() :
+	_status_controller(StatusController::getInstance()),
+	_cloud_controller(CloudController::getInstance())
 {
     ScriptExecutor::getOutput::execute(1, "mkdir " DIR_SETTING);
     ScriptExecutor::getOutput::execute(1, "touch " PATH_SETTING);
@@ -28,14 +29,14 @@ SettingController::SettingController()
 SettingController::~SettingController() {}
 
 SettingController &SettingController::getInstance() {
-    std::lock_guard<std::mutex> guard(SettingController::_mutex);
+    // std::lock_guard<std::mutex> guard(SettingController::_mutex);
     static SettingController    setting;
 
     return setting;
 }
 
 int                     SettingController::get_version() {
-    std::lock_guard<std::mutex> guard(SettingController::_mutex);
+    // std::lock_guard<std::mutex> guard(SettingController::_mutex);
 
     for (Setting setting : this->_list_setting)
     if (setting.option == "Version")
@@ -44,7 +45,7 @@ int                     SettingController::get_version() {
 }
 
 std::string             SettingController::get_str_unapply_options() {
-    std::lock_guard<std::mutex> guard(SettingController::_mutex);
+    // std::lock_guard<std::mutex> guard(SettingController::_mutex);
     std::string r_str;
 
     for (Setting unapply_setting : this->_list_unapply_setting)
@@ -62,11 +63,11 @@ std::string             SettingController::get_str_unapply_options() {
     // copy some setting to tmp_setting_for_roolback.system
     // apply setting (start same scripts)..................
 eSettingStatus         SettingController::apply_setting() {
-    std::lock_guard<std::mutex> guard(SettingController::_mutex);
+    // std::lock_guard<std::mutex> guard(SettingController::_mutex);
 
     std::vector<std::string>    list_apply_setting;
     std::vector<std::string>    list_fail_setting;
-    // eWorkMod                    wm = StatusController::getInstance().getWorkMod();
+    // eWorkMod                    wm = this->_status_controller.getWorkMod();
 
     std::cerr << "setting: start APPLY!\n";
     // if (!this->_list_new_setting.size())
@@ -90,8 +91,10 @@ eSettingStatus         SettingController::apply_setting() {
     }
     if (this->_list_unapply_setting.size())
         return eSettingStatus::sApplyFail;
-    if (list_apply_setting.size())
-        this->_change_list_setting(list_apply_setting);
+    if (list_apply_setting.size()) {
+		this->_change_list_setting(list_apply_setting);
+		this->_status_controller.wifi_reload();
+	}
     return eSettingStatus::sApplyOK;
 }
 
@@ -99,7 +102,7 @@ eSettingStatus         SettingController::apply_setting() {
     // delete variable_setting.system
 eSettingStatus         SettingController::roolback_setting(std::vector<std::string> list_unapply_options) {
     {
-        std::lock_guard<std::mutex> guard(SettingController::_mutex);
+        // std::lock_guard<std::mutex> guard(SettingController::_mutex);
         std::vector<std::string>    list_apply_setting;
         std::vector<std::string>    list_fail_setting;
 
@@ -139,7 +142,7 @@ eSettingStatus         SettingController::roolback_setting(std::vector<std::stri
     // delete variable_setting.system
     // delete tmp_setting_for_roolbac   k.system
 eSettingStatus         SettingController::save_setting() {
-    std::lock_guard<std::mutex> guard(SettingController::_mutex);
+    // std::lock_guard<std::mutex> guard(SettingController::_mutex);
 
     std::cerr << "setting: start SAVE!\n";
     std::ofstream   file(PATH_SETTING);
@@ -164,9 +167,9 @@ eSettingStatus         SettingController::save_setting() {
 // MARK : check setting....
 
 bool        SettingController::is_setting_chenge() {
-    std::lock_guard<std::mutex> guard(SettingController::_mutex);
+    // std::lock_guard<std::mutex> guard(SettingController::_mutex);
 
-    eWorkMod        wm = StatusController::getInstance().getWorkMod();
+    eWorkMod        wm = this->_status_controller.getWorkMod();
     // static Timer    t;
 	if (wm == eWorkMod::wm_client)
 		this->_list_new_setting.clear();
@@ -183,7 +186,7 @@ bool        SettingController::is_setting_chenge() {
 			if (file.is_open())
 				system("rm " PATH_VARIABLE_SETTING);
 		}
-        CloudController::getInstance().get_setting_from_cloud();
+        this->_cloud_controller.get_setting_from_cloud();
         if (this->_check_variable_file_setting())
             return true;
         else
@@ -199,7 +202,7 @@ bool        SettingController::is_setting_chenge() {
     // check version - if old or no exist - return false
 bool        SettingController::_check_variable_file_setting() {
     int             count_new_setting;
-    eWorkMod        wm = StatusController::getInstance().getWorkMod();
+    eWorkMod        wm = this->_status_controller.getWorkMod();
 
     if (!this->_is_version_update()) {
         return false;
@@ -222,7 +225,7 @@ bool        SettingController::_is_version_update() const {
     if (!file_var.is_open()) {
         return false;
     }
-    if (StatusController::getInstance().getWorkMod() == eWorkMod::wm_client)
+    if (this->_status_controller.getWorkMod() == eWorkMod::wm_client)
         return true;
     file_var >> nv_option;
     if (nv_option != version.option)
@@ -242,7 +245,7 @@ int         SettingController::_approve_new_setting() {
     std::fstream                file_var;
     std::string                 str_content_from_file;
     std::string                 line;
-    eWorkMod                    work_mod = StatusController::getInstance().getWorkMod();
+    eWorkMod                    work_mod = this->_status_controller.getWorkMod();
     int                         size;
 
     this->_list_new_setting.clear();

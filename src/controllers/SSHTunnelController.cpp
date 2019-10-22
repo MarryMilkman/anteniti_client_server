@@ -20,6 +20,7 @@ SSHTunnelController::~SSHTunnelController() {
 SSHTunnelController	&SSHTunnelController::getInstance() {
 	static SSHTunnelController 	ssh_tc;
 
+	std::cerr << "SSHTunnelController::getInstance(\n";
 	return ssh_tc;
 }
 

@@ -22,9 +22,9 @@ public:
 
 	bool 						is_sn_from_mesh(std::string serial_number);
 private:
-    static std::mutex           _mutex;
+    std::mutex					_mutex;
 
-    RouterData                  _self_info;
+    RouterData                 	_self_info;
     RouterData                  _server_info;
     std::vector<RouterData>     _list_routers;
 };

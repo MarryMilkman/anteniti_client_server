@@ -23,10 +23,15 @@ public:
 
     bool                    server_availabilit;
 
+	void 					wifi_reload();
+	void 					mac_list_reload();
+
     void                    choiceModWork();
     eWorkMod                getWorkMod();
+	time_t 					get_time_reload();
 private:
-    static std::mutex      _mutex;
+    // static std::mutex      _mutex;
+	time_t			_time_reload;
 
     eWorkMod        _mod;
 

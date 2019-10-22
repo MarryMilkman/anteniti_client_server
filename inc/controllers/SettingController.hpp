@@ -11,6 +11,8 @@
 #define PATH_SETTING_SCRIPTS "/root/scripts/"
 
 # include "lib.h"
+# include "controllers/StatusController.hpp"
+# include "controllers/CloudController.hpp"
 # include "controllers/setting_tools/Setting.hpp"
 
 enum eSettingStatus {
@@ -40,7 +42,9 @@ public:
     bool            is_setting_chenge();
 
 private:
-    static std::mutex       _mutex;
+    // static std::mutex       _mutex;
+	StatusController			&_status_controller;
+	CloudController 			&_cloud_controller;
 
     std::vector<Setting>    _list_new_setting;
     std::vector<Setting>    _list_setting;

@@ -14,11 +14,8 @@ CloudController::~CloudController() {
 }
 
 CloudController &CloudController::getInstance() {
-    // std::cerr << "hmmm\n";
-    // Lock    lock(this->_mutex, "CloudController");
     static CloudController  cloud;
 
-    // std::cerr << "ZALUPA?\n"
     return cloud;
 }
 
@@ -33,9 +30,9 @@ int             CloudController::_get_ssl_sert() {
         curl_easy_setopt(this->_curl, CURLOPT_WRITEFUNCTION, CloudController::_writeMemoryCallback);
         curl_easy_setopt(this->_curl, CURLOPT_WRITEDATA, &this->_ssl_certificate_mem);
         curl_easy_setopt(this->_curl, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_easy_setopt(this->_curl, CURLOPT_TIMEOUT, 30);
+        curl_easy_setopt(this->_curl, CURLOPT_TIMEOUT, 3);
 
-        curl_easy_setopt(this->_curl, CURLOPT_VERBOSE, 1);
+        // curl_easy_setopt(this->_curl, CURLOPT_VERBOSE, 1);
 
         res = curl_easy_perform(this->_curl);
         if(res != CURLE_OK) {
@@ -51,11 +48,15 @@ int             CloudController::_get_ssl_sert() {
     return 0;
 }
 
-void            CloudController::post_info_to_cloud(std::string info) {
-    std::cerr << "cloud: send info\n";
-    Lock    lock(this->_mutex, "CloudController");
-    // std::this_thread::sleep_for(std::chrono::seconds(3));
 
+
+// MRAK : curl executers
+
+void            CloudController::post_info_to_cloud(std::string info) {
+	std::lock_guard<std::mutex> lg(this->_mutex);
+
+	std::cerr << "cloud: send info\n";
+    // std::this_thread::sleep_for(std::chrono::seconds(3));
     CloudController::PostFilds  pf;
 
     pf.action = "send-info";
@@ -63,7 +64,7 @@ void            CloudController::post_info_to_cloud(std::string info) {
     pf.text = info;
     pf.apikey = APIKEY;
 
-    if (this->_init_and_execute_post((char *)pf.get_postfilds(ePostType::forSend).c_str(), (char *)CLOUD_URL)) {
+    if (this->_init_and_execute_post(pf.get_postfilds(ePostType::forSend).c_str(), CLOUD_URL)) {
         std::cerr << "Fail post_info_to_cloud\n";
         this->_clean_after_post();
         std::cerr << "end clean post_info_to_cloud\n";
@@ -73,9 +74,9 @@ void            CloudController::post_info_to_cloud(std::string info) {
     this->_clean_after_post();
 }
 
-
 void            CloudController::get_setting_from_cloud() {
     std::cout << "cloud: get setting\n";
+	std::lock_guard<std::mutex> lg(this->_mutex);
     CloudController::PostFilds  pf;
 
     pf.action = "get-setting";
@@ -90,6 +91,7 @@ void            CloudController::get_setting_from_cloud() {
     this->_clean_after_post();
 
     std::ofstream               f_new_setting(PATH_VARIABLE_SETTING);
+	std::cerr << this->_response_mem.memory << "\n";
     std::vector<std::string>    list_new_setting = Parser::pars_cloud_answer(std::string(this->_response_mem.memory));
 
     for (std::string setting : list_new_setting)
@@ -102,6 +104,7 @@ void            CloudController::get_setting_from_cloud() {
 
 void            CloudController::get_blocklist_from_cloud() {
     std::cout << "cloud: get blocklist\n";
+	std::lock_guard<std::mutex> lg(this->_mutex);
     CloudController::PostFilds  pf;
 
     pf.action = "get-settingmac";
@@ -126,16 +129,50 @@ void            CloudController::get_blocklist_from_cloud() {
     this->_response_mem.clean();
 }
 
+void 		CloudController::notificat(std::string coder, std::string name) {
+	std::cerr << "cloud: notificat " << coder << "\n";
+	std::lock_guard<std::mutex> lg(this->_mutex);
+    // std::this_thread::sleep_for(std::chrono::seconds(3));
+
+    CloudController::PostFilds  pf;
+	std::string 				str_pf;
+
+    pf.action = "set-routpush";
+    pf.serial_number = RouterInfoController::getInstance().get_self_info().serial_number;
+    pf.name = name;
+	pf.coder = coder;
+    pf.apikey = APIKEY;
+	str_pf = pf.get_postfilds_for_notification();
+    if (this->_init_and_execute_post((char *)str_pf.c_str(), (char *)CLOUD_URL)) {
+        std::cerr << "Fail CloudController::notificat\n";
+        this->_clean_after_post();
+        std::cerr << "end clean CloudController::notificat\n";
+        return ;
+    }
+    std::cerr << "notificat: answer from cloud: " << this->_response_mem.memory << "\n";
+    this->_clean_after_post();
+}
 
 
-int         CloudController::_init_and_execute_post(char *postfild, char *url) {
-    std::cerr << "SHalom!\n";
+
+
+
+
+
+
+
+int         CloudController::_init_and_execute_post(const char *postfild, const char *url) {
+    std::cerr << "_init_and_execute_post!\n";
     std::ofstream               temp_file_sert;
     CURLcode                    res;
 
+	////////////
+
+	////////////
     this->_curl = 0;
     if (this->_get_ssl_sert())
         return -1;
+	// std::cerr << postfild << "\n----------------------------------------------------------------\n";
     this->_response_mem.clean();
     temp_file_sert.open(TEMP_SERT_PATH);
     temp_file_sert << this->_ssl_certificate_mem.memory;
@@ -229,10 +266,28 @@ std::string CloudController::PostFilds::get_postfilds(ePostType type) {
     return pf;
 }
 
+std::string CloudController::PostFilds::get_postfilds_for_notification() {
+	std::string postfild = "";
+
+	if (this->coder == NOTIF_JAMMING) {
+		postfild += "action=" + this->action + "&";
+		postfild += "sn=" + this->serial_number + "&";
+		postfild += "coder=" + this->coder + "&";
+		postfild += "apikey=" + this->apikey;
+		return postfild;
+	}
+	postfild += "action=" + this->action + "&";
+    postfild += "sn=" + this->serial_number + "&";
+    postfild += "name=" + this->name + "&";
+    postfild += "coder=" + this->coder + "&";
+	postfild += "apikey=" + this->apikey;
+	return postfild;
+}
+
 std::string CloudController::PostFilds::_get_pf_for_send() {
     std::string postfilds = "";
 
-    postfilds += "action=" + this->action + "&";
+	postfilds += "action=" + this->action + "&";
     postfilds += "sn=" + this->serial_number + "&";
     postfilds += "text=[" + this->text + "]&";
     postfilds += "apikey=" + this->apikey;

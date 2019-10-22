@@ -11,6 +11,19 @@
 #define CLOUD_TMP_FILE_PATH "/tmp/cloud_tmp_file.txt"
 #define SERTIFICATE_FILE_PATH "/home/user/Downloads/cacert.pem"
 
+
+// NOTIFICATE:
+#define NOTIF_CONNECT_NEW_D "0-001"
+#define NOTIF_CONNECT_D "0-002"
+#define NOTIF_DISCONNECT_D "0-003"
+#define NOTIF_JAMMING "0-010"
+
+// fild *coder*:
+// 0-001 - connect new devices
+// 0-002 - connect devices
+// 0-003 - disconnect devices
+// 0-010 - jamming
+
 enum ePostType {
     forSend = 0,
     forGet
@@ -28,12 +41,9 @@ typedef struct s_memoryStruct {
     }
 
     void        clean() {
-        if (this->memory) {
-            if (this->memory)
-                free(this->memory);
-            this->memory = (char *)malloc(1);
-            this->size = 0;
-        }
+        if (this->memory)
+            free(this->memory);
+		this->memory = (char *)malloc(1);
         this->size = 0;
     }
 
@@ -41,7 +51,6 @@ typedef struct s_memoryStruct {
     size_t      size;
 }               t_memoryStruct;
 
-// https://www.anteniti.icu/?action=send-info&sn=01201905270000100001&text=[781]&apikey=11111111111111111111
 // curl https://curl.haxx.se/ca/cacert.pem > qwe.pem
 
 class CloudController {
@@ -52,6 +61,8 @@ public:
     ~CloudController();
     static CloudController &getInstance();
 
+
+	void 	notificat(std::string coder, std::string name);
 
     void    post_info_to_cloud(std::string info);
     void    get_setting_from_cloud();
@@ -66,7 +77,7 @@ private:
     t_memoryStruct      _response_mem;
     t_memoryStruct      _ssl_certificate_mem;
 
-    int                 _init_and_execute_post(char *postfild, char *url);
+    int                 _init_and_execute_post(const char *postfild, const char *url);
     int                 _clean_after_post();
 
 
@@ -91,7 +102,11 @@ private:
         std::string     text;
         std::string     apikey;
 
+		std::string 	name;
+		std::string 	coder;
+
         std::string     get_postfilds(ePostType type);
+		std::string 	get_postfilds_for_notification();
     private:
         std::string     _get_pf_for_send();
         std::string     _get_pf_for_get();

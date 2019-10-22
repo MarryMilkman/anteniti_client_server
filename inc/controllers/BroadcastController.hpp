@@ -21,7 +21,7 @@ public:
     std::string         get_message() const;
 
 private:
-    static std::mutex   _mutex;
+    // static std::mutex   _mutex;
 
     std::string         _message;
     int                 _sockfd;

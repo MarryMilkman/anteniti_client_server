@@ -1,8 +1,10 @@
 #include "controllers/BlockingController.hpp"
-#include "controllers/CloudController.hpp"
 #include "ScriptExecutor.hpp"
 
-BlockingController::BlockingController()
+BlockingController::BlockingController() :
+	_status_controller(StatusController::getInstance()),
+	_cloud_controller(CloudController::getInstance())
+
 {
 	ScriptExecutor::getOutput::execute(1, "mkdir " DIR_BLOCKLIST);
 }
@@ -19,7 +21,7 @@ bool 		BlockingController::download_list() {
 	std::fstream	file_blocklist(PATH_BLOCKLIST);
 	std::string 	line;
 
-	CloudController::getInstance().get_blocklist_from_cloud();
+	this->_cloud_controller.get_blocklist_from_cloud();
 	if (!file_blocklist.is_open())
 		return false;
 	this->_get_block_list_from_file();
@@ -65,29 +67,8 @@ bool		BlockingController::apply() {
 			this->_makeGeneral(block_d.mac);
 		else if (block_d.access_level == eAccessLevel::al_Smart)
 			this->_makeSmart(block_d.mac);
-
-		// std::string script = "";
-		//
-		// std::cerr << block_d.mac << " " << block_d.access_level << "\n";
-		// if (block_d.access_level == eAccessLevel::al_Blocked) {
-		// 	//
-		// 	// script = SCRIPT_PATH "delfromlan.sh;";
-		// 	// script += SCRIPT_PATH + " blacklist.sh"
-		// }
-		// if (block_d.access_level == al_General || block_d.access_level == eAccessLevel::al_GuestGeneral) {
-		// 	if (this->_is_mac_from(block_d.mac, "lan"))
-		// 		continue;
-		// 	script = SCRIPT_PATH "addtolan.sh";
-		// }
-		// // if (block_d.access_level == al_Guest || block_d.access_level == eAccessLevel::al_GuestGeneral) {
-		// // 	if (!this->_is_mac_from(block_d.mac, "guest"))
-		// // 		continue;
-		// // 	script = SCRIPT_PATH "addtoguest.sh";
-		// // }
-		// if (script.size() && block_d.mac.size())
-		// 	ScriptExecutor::execute(2, script.c_str(), block_d.mac.c_str());
 	}
-	this->_wifi_relaod();
+	this->_status_controller.mac_list_reload();
 	// system("wifi reload");
 	this->_tmp_block_list.clear();
 	return true;
@@ -132,7 +113,7 @@ void 		BlockingController::_makeLimited(std::string mac) {
 	ScriptExecutor::execute(1, ss_script.str().c_str());
 	// del from guest
 	ss_script = std::stringstream("");
-	ss_script << SCRIPT_PATH << "delfrom_gust.sh " << mac;
+	ss_script << SCRIPT_PATH << "delfrom_guest.sh " << mac;
 	ScriptExecutor::execute(1, ss_script.str().c_str());
 	// del from sump (blacklist)
 	ss_script = std::stringstream("");
@@ -152,7 +133,7 @@ void 		BlockingController::_makeBlocked(std::string mac) {
 	ScriptExecutor::execute(1, ss_script.str().c_str());
 	// del from guest
 	ss_script = std::stringstream("");
-	ss_script << SCRIPT_PATH << "delfrom_gust.sh " << mac;
+	ss_script << SCRIPT_PATH << "delfrom_guest.sh " << mac;
 	ScriptExecutor::execute(1, ss_script.str().c_str());
 	// add to sump (blacklist)
 	if (!this->_is_mac_from(mac, eNumWireless::nw_Sump)) {
@@ -175,7 +156,7 @@ void 		BlockingController::_makeGuest(std::string mac) {
 	// add to guest
 	if (!this->_is_mac_from(mac, eNumWireless::nw_Guest)) {
 		ss_script = std::stringstream("");
-		ss_script << SCRIPT_PATH << "addto_gust.sh " << mac;
+		ss_script << SCRIPT_PATH << "addto_guest.sh " << mac;
 		ScriptExecutor::execute(1, ss_script.str().c_str());
 	}
 	// add to sump (blacklist)
@@ -200,7 +181,7 @@ void 		BlockingController::_makeGeneral(std::string mac) {
 	}
 	// del from guest
 	ss_script = std::stringstream("");
-	ss_script << SCRIPT_PATH << "delfrom_gust.sh " << mac;
+	ss_script << SCRIPT_PATH << "delfrom_guest.sh " << mac;
 	ScriptExecutor::execute(1, ss_script.str().c_str());
 	// add to sump (blacklist)
 	if (!this->_is_mac_from(mac, eNumWireless::nw_Sump)) {
@@ -230,10 +211,11 @@ void 		BlockingController::_makeSmart(std::string mac) {
 	}
 }
 
-void 		BlockingController::_wifi_relaod() {
-	std::cerr << "start: wifi reload\n";
-	system("wifi reload");
-}
+// void 		BlockingController::_wifi_relaod() {
+// 	std::string 	script = SCRIPT_PATH "hostapd_reload.sh";
+//
+// 	system(script.c_str());
+// }
 
 
 
