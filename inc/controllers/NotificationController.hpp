@@ -63,6 +63,7 @@ private:
 	void 					_check_watchers_general(int temp_process);
 	void 					_check_watchers_sump(int temp_process);
 	void 					_check_watchers_guest(int temp_process);
+	pid_t 					_make_watcher(std::string script);
 
 
 };

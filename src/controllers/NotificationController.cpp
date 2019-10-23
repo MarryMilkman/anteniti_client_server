@@ -1,8 +1,11 @@
 #include "controllers/NotificationController.hpp"
+#include "controllers/notification_tools/Event.hpp"
 #include "ScriptExecutor.hpp"
 #include "Timer.hpp"
+#include "Parser.hpp"
 #include "TCP_IP_Worker.hpp"
-#include "controllers/notification_tools/Event.hpp"
+
+#include <cerrno>
 
 NotificationController::NotificationController() :
 	_cloud_controller(CloudController::getInstance()),
@@ -147,10 +150,14 @@ void 		NotificationController::_explore_and_clean_connection_log() {
 	std::fstream 		file(CONNECTION_LOG);
 	std::stringstream	ss;
 	std::string 		line;
+	int 				event_count = 0;
 
 	while (getline(file, line)) {
 		ss << line << "\n";
+		event_count++;
 	}
+	if (!this->_list_event.size() && !event_count)
+		return;
 	file.close();
 	// make clean
 	file.open(CONNECTION_LOG, std::ios::out | std::ios::trunc);
@@ -217,25 +224,22 @@ void 		NotificationController::_check_watchers_general(int term_process) {
 	std::string 	script = SCRIPT_PATH "testconn.sh";
 
 	if (this->_watcher_general <= 0 || this->_watcher_general == term_process) {
-		pid_t	new_pid = fork();
-		if (!new_pid) {
-			script = std::string("hostapd_cli -i wlan0 -a ") + script + ">>" CONNECTION_LOG;
-			std::cerr << script.c_str() << "\n";
-			system(script.c_str());
-			exit(0);
-		}
-		this->_watcher_general = new_pid;
+		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan0 -a ") + script ;//+ ">>" CONNECTION_LOG;
+		this->_watcher_general = this->_make_watcher(script_for_exec);
+		//
+		// pid_t	new_pid = fork();
+		// if (!new_pid) {
+		// 	prctl(PR_SET_PDEATHSIG, SIGHUP);
+		// 	script  = std::string("/usr/sbin/hostapd_cli -i wlan0 -a ") + script ;//+ ">>" CONNECTION_LOG;
+		// 	std::cerr << script.c_str() << "\n";
+		// 	system(script.c_str());
+		// 	exit(0);
+		// }
+		// this->_watcher_general = new_pid;
 	}
 	if (this->_watcher_general5 <= 0 || this->_watcher_general5 == term_process) {
-		pid_t	new_pid = fork();
-		if (!new_pid) {
-			script = std::string("hostapd_cli -i wlan1-2 -a ") + script + ">>" CONNECTION_LOG;
-			std::cerr << script.c_str() << "\n";
-			std::cerr << "proc " << new_pid << " finish!\n";
-			system(script.c_str());
-			exit(0);
-		}
-		this->_watcher_general5 = new_pid;
+		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan1-2 -a ") + script ;//+ ">>" CONNECTION_LOG;
+		this->_watcher_general5 = this->_make_watcher(script_for_exec);
 	}
 }
 
@@ -243,24 +247,12 @@ void 		NotificationController::_check_watchers_sump(int term_process) {
 	std::string 	script = SCRIPT_PATH "testconn.sh";
 
 	if (this->_watcher_sump <= 0 || this->_watcher_sump == term_process) {
-		pid_t	new_pid = fork();
-		if (!new_pid) {
-			script = std::string("hostapd_cli -i wlan0-2 -a ") + script + ">>" CONNECTION_LOG;
-			std::cerr << script.c_str() << "\n";
-			system(script.c_str());
-			exit(0);
-		}
-		this->_watcher_sump = new_pid;
+		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan0-2 -a ") + script ;//+ ">>" CONNECTION_LOG;
+		this->_watcher_sump = this->_make_watcher(script_for_exec);
 	}
 	if (this->_watcher_sump5 <= 0 || this->_watcher_sump5 == term_process) {
-		pid_t	new_pid = fork();
-		if (!new_pid) {
-			script = std::string("hostapd_cli -i wlan1-3 -a ") + script + ">>" CONNECTION_LOG;
-			std::cerr << script.c_str() << "\n";
-			system(script.c_str());
-			exit(0);
-		}
-		this->_watcher_sump5 = new_pid;
+		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan1-3 -a ") + script ;//+ ">>" CONNECTION_LOG;
+		this->_watcher_sump5 = this->_make_watcher(script_for_exec);
 	}
 }
 
@@ -268,23 +260,36 @@ void 		NotificationController::_check_watchers_guest(int term_process) {
 	std::string 	script = SCRIPT_PATH "testconn.sh";
 
 	if (this->_watcher_guest <= 0 || this->_watcher_guest == term_process) {
-		pid_t	new_pid = fork();
-		if (!new_pid) {
-			script = std::string("hostapd_cli -i wlan0-3 -a ") + script + ">>" CONNECTION_LOG;
-			std::cerr << script.c_str() << "\n";
-			system(script.c_str());
-			exit(0);
-		}
-		this->_watcher_guest = new_pid;
+		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan0-3 -a ") + script ;//+ ">>" CONNECTION_LOG;
+		this->_watcher_guest = this->_make_watcher(script_for_exec);
 	}
 	if (this->_watcher_guest5 <= 0 || this->_watcher_guest5 == term_process) {
-		pid_t	new_pid = fork();
-		if (!new_pid) {
-			script = std::string("hostapd_cli -i wlan1-4 -a ") + script + ">>" CONNECTION_LOG;
-			std::cerr << script.c_str() << "\n";
-			system(script.c_str());
-			exit(0);
-		}
-		this->_watcher_guest5 = new_pid;
+		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan1-4 -a ") + script ;//+ ">>" CONNECTION_LOG;
+		this->_watcher_guest5 = this->_make_watcher(script_for_exec);
 	}
+}
+
+pid_t 		NotificationController::_make_watcher(std::string script) {
+	pid_t	new_pid = fork();
+	if (!new_pid) {
+		prctl(PR_SET_PDEATHSIG, SIGHUP);
+
+		std::vector<std::string> 	script_words = Parser::custom_split(script, " ");
+		char 						**env = (char **)malloc(sizeof(char *) * 2);
+		int 						size = script_words.size();
+		char 						**argv = (char **)malloc(sizeof(char *) * (size + 1));
+		std::string 				path_log_file = "OUT=";
+
+		path_log_file += CONNECTION_LOG;
+		for (int i = 1; i < size; i++)
+			argv[i] = (char *)script_words[i].c_str();
+		argv[size] = 0;
+		env[0] = (char *)path_log_file.c_str();
+		env[1] = 0;
+		execve(script_words[0].c_str(), argv, env);
+		free(env);
+		free(argv);
+		exit(0);
+	}
+	return new_pid;
 }

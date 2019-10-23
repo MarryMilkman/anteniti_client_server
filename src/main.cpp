@@ -72,7 +72,5 @@ int main(int argc, char const *argv[])
 		std::cerr << "hmmmmmmmmmmmmmmmmmmmmmmm\n";
 		StatusController::getInstance().choiceModWork();
 	}
-	if (thread_notification.joinable())
-		thread_notification.join();
 	return 0;
 }

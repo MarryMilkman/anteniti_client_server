@@ -421,17 +421,17 @@ void 		Server::_get_info_from_routers_and_send_to_cloud(std::vector<RouterData> 
 	std::string 			info = "";
 
 	i = 0;
-	info += "RouterBegin" + std::to_string(++i) + std::string("\n");
+	info += "RouterBegin" + std::to_string(++i) + std::string(" ");
 	info += this->_info_controller.get_info_for_cloud();
-	info += "RouterEnd" + std::to_string(i) + std::string("\n");
+	info += "RouterEnd" + std::to_string(i) + std::string(" ");
 	try {
 		this->_bc_controller.send(SEND_INFO, 10);
 		Server::_listenAnswers(list_routers, "Get information...", LISTEN_PORT, 1);
 	} catch (std::exception &e) {}
 	for (RouterData router : list_routers) {
-		info += "RouterBegin" + std::to_string(++i) + "\n";
+		info += "RouterBegin" + std::to_string(++i) + " ";
 		info += router.message;
-		info += "RouterEnd" + std::to_string(i) + "\n";
+		info += "RouterEnd" + std::to_string(i) + " ";
 		// router.is_ok = true;
 		std::cerr << "Info from ip " << router.ip << ":\n";
 		std::cerr << router.message << "\n- - - - - - -\n";
@@ -440,6 +440,7 @@ void 		Server::_get_info_from_routers_and_send_to_cloud(std::vector<RouterData> 
 	// std::cerr << info << "\n";
 	this->_cloud_controller.post_info_to_cloud(info);
 }
+
 
 	// listen answer
 	//		list_routers - list of routers from which need to get an answer

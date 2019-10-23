@@ -45,18 +45,18 @@ std::string     ConnectedDeviceInfo::get_string_info() {
     std::string     info;
     // int             i = 1;
 
-	info += "IP: " + this->_ip + "IP_end\n";
-	info += "MAC: " + this->_mac + "MAC_end\n";
-	info += "Signal: " + std::to_string(this->_signal) + "Signal_end\n";
-    info += "Nick: " + this->_nick + "Nick_end\n";
-    // info += "Group: " + this->_group + "\n";
-    // info += "TypeConn: " + this->_typeConn + "\n";
-    info += "Type802: " + this->_type802 + "Type802_end\n";
-    info += "TimeWork: " + this->_timeWork + "TimeWork_end\n";
-	info += "InactiveTime: " + this->_inactiveTime + "InactiveTime_end\n";
-    // info += "Location: " + this->_location + "\n";
-    // info += "HostName: " + this->_hostName + "\n";
-    // info += "Blocked: " + std::string(this->_isBlocked ? "yes" : "no") + "\n";
+	info += "IP: " + this->_ip + "IP_end ";
+	info += "MAC: " + this->_mac + "MAC_end ";
+	info += "Signal: " + std::to_string(this->_signal) + "Signal_end ";
+    info += "Nick: " + this->_nick + "Nick_end ";
+    // info += "Group: " + this->_group + " ";
+    // info += "TypeConn: " + this->_typeConn + " ";
+    info += "Type802: " + this->_type802 + "Type802_end ";
+    info += "TimeWork: " + this->_timeWork + "TimeWork_end ";
+	info += "InactiveTime: " + this->_inactiveTime + "InactiveTime_end ";
+    // info += "Location: " + this->_location + " ";
+    // info += "HostName: " + this->_hostName + " ";
+    // info += "Blocked: " + std::string(this->_isBlocked ? "yes" : "no") + " ";
     return info;
 }
 

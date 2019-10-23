@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 
 #include <sys/wait.h>
+#include <sys/prctl.h>
 
 #include <netinet/in.h>
 #include <netinet/tcp.h>

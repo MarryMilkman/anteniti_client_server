@@ -29,27 +29,27 @@ enum ePostType {
     forGet
 };
 
-typedef struct s_memoryStruct {
-    s_memoryStruct() {
-        this->memory = (char *)malloc(1);
-        this->size = 0;
-    }
-
-    ~s_memoryStruct() {
-        if (this->memory)
-            free(this->memory);
-    }
-
-    void        clean() {
-        if (this->memory)
-            free(this->memory);
-		this->memory = (char *)malloc(1);
-        this->size = 0;
-    }
-
-    char        *memory;
-    size_t      size;
-}               t_memoryStruct;
+// typedef struct s_memoryStruct {
+//     s_memoryStruct() {
+//         this->memory = (char *)malloc(1);
+//         this->size = 0;
+//     }
+//
+//     ~s_memoryStruct() {
+//         if (this->memory)
+//             free(this->memory);
+//     }
+//
+//     void        clean() {
+//         if (this->memory)
+//             free(this->memory);
+// 		this->memory = (char *)malloc(1);
+//         this->size = 0;
+//     }
+//
+//     char        *memory;
+//     size_t      size;
+// }               t_memoryStruct;
 
 // curl https://curl.haxx.se/ca/cacert.pem > qwe.pem
 
@@ -73,22 +73,23 @@ public:
 private:
     std::mutex          _mutex;
 
-    CURL                *_curl;
-    t_memoryStruct      _response_mem;
-    t_memoryStruct      _ssl_certificate_mem;
+    // CURL                *_curl;
+	std::string 		_response;
+    // t_memoryStruct      _response_mem;
+    // t_memoryStruct      _ssl_certificate_mem;
 
-    int                 _init_and_execute_post(const char *postfild, const char *url);
-    int                 _clean_after_post();
+    int                 _init_and_execute_post(std::string postfild, std::string url);
+    // int                 _clean_after_post();
+	static void			_prepare_message_for_curl_send(std::string &message);
 
 
-
-    int                 _get_ssl_sert();
+    // int                 _get_ssl_sert();
     void                _pars_get_sert(std::string line);
 
-    static size_t       _writeMemoryCallback(void *contents,
-                                          size_t size,
-                                          size_t nmemb,
-                                          void *userp);
+    // static size_t       _writeMemoryCallback(void *contents,
+    //                                       size_t size,
+    //                                       size_t nmemb,
+    //                                       void *userp);
 
     class PostFilds {
     public:

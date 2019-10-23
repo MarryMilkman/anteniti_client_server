@@ -47,24 +47,24 @@ std::string     DeviceInfo::get_string_info() {
     int             i = 1;
 
 	this->_refresh();
-    info += "DeviceRouterInfoBegin\n";
-    // info += "Status: " + std::string(this->_status ? "on" : "off") + "\n";
-    // info += "Signal: " + std::to_string(this->_signal) + "%\n";
-    // info += "Location: " + this->_location + "\n";
-    // info += "Diod: " + std::string(this->_diod ? "on" : "off") + "\n";
-	info += "SN: " + this->_sn + "SN_end\n";
-	info += "IP: " + this->_ip + "IP_end\n";
-    info += "OS: " + this->_os + "OS_end\n";
-    info += "Model: " + this->_model + "Model_end\n";
-    info += "EtherA: " + this->_etherA + "EtherA_end\n";
-    info += "EtherB: " + this->_etherB + "EtherB_end\n";
-    info += "WifiA: " + this->_wifiA + "WifiA_end\n";
-    info += "WifiB: " + this->_wifiB + "WifiB_end\n";
-    info += "DeviceRouterInfoEnd\n\n";
+    info += "DeviceRouterInfoBegin ";
+    // info += "Status: " + std::string(this->_status ? "on" : "off") + " ";
+    // info += "Signal: " + std::to_string(this->_signal) + "% ";
+    // info += "Location: " + this->_location + " ";
+    // info += "Diod: " + std::string(this->_diod ? "on" : "off") + " ";
+	info += "SN: " + this->_sn + "SN_end ";
+	info += "IP: " + this->_ip + "IP_end ";
+    info += "OS: " + this->_os + "OS_end ";
+    info += "Model: " + this->_model + "Model_end ";
+    info += "EtherA: " + this->_etherA + "EtherA_end ";
+    info += "EtherB: " + this->_etherB + "EtherB_end ";
+    info += "WifiA: " + this->_wifiA + "WifiA_end ";
+    info += "WifiB: " + this->_wifiB + "WifiB_end ";
+    info += "DeviceRouterInfoEnd  ";
     for (ConnectedDeviceInfo dci : this->_list_connected_devices) {
-        info += "DeviceBegin" + std::to_string(i) + "\n";
+        info += "DeviceBegin" + std::to_string(i) + " ";
         info += dci.get_string_info();
-        info += "DeviceEnd" + std::to_string(i++) + "\n";
+        info += "DeviceEnd" + std::to_string(i++) + " ";
     }
     return info;
 }
