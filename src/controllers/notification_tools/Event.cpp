@@ -1,12 +1,29 @@
 #include "controllers/notification_tools/Event.hpp"
 #include "controllers/info_tools/ConnectedDeviceInfo.hpp"
-
+#include "Parser.hpp"
 
 Event::Event() {
-
 }
 
 Event::Event(std::string str_event) {
+	{
+		std::vector<std::string> 	list_str_param = Parser::custom_split(str_event, " ");
+
+		if (list_str_param.size() == 6) {
+			this->conn = list_str_param[0] == "1" ? true : false;
+			this->mac = list_str_param[1];
+			this->nick = list_str_param[2];
+			this->iface = list_str_param[3];
+			try {
+				this->event_time = std::stoi(list_str_param[4]);
+			} catch (std::exception & e) {
+				this->event_time = 0;
+			}
+			this->is_new = list_str_param[5] == "1" ? true : false;
+			return ;
+		}
+	}
+
 	std::stringstream 	pars_ss(str_event);
 	std::string 		word;
 
@@ -46,6 +63,6 @@ std::string 	Event::get_str() const {
 	std::stringstream ss;
 
 	ss << this->conn << " " << this->mac << " " << this->nick << " "
-		<< this->iface << " " << this->event_time << this->is_new << "\n";
+		<< this->iface << " " << this->event_time << " " << this->is_new << "\n";
 	return ss.str();
 }

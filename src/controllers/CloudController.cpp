@@ -34,9 +34,9 @@ void            CloudController::post_info_to_cloud(std::string info) {
     pf.action = "send-info";
     pf.serial_number = RouterInfoController::getInstance().get_self_info().serial_number;
     pf.text = info;
-    pf.apikey = APIKEY;
+    pf.apikey = Constant::Cloud::apikey;
 
-    if (this->_init_and_execute_post(pf.get_postfilds(ePostType::forSend).c_str(), CLOUD_URL)) {
+    if (this->_init_and_execute_post(pf.get_postfilds(ePostType::forSend).c_str(), Constant::Cloud::cloud_url)) {
         std::cerr << "Fail post_info_to_cloud\n";
         return ;
     }
@@ -49,14 +49,14 @@ void            CloudController::get_setting_from_cloud() {
 
     pf.action = "get-setting";
     pf.serial_number = RouterInfoController::getInstance().get_self_info().serial_number;
-    pf.apikey = APIKEY;
+    pf.apikey = Constant::Cloud::apikey;
 
-    if (this->_init_and_execute_post(pf.get_postfilds(ePostType::forGet), CLOUD_URL)) {
+    if (this->_init_and_execute_post(pf.get_postfilds(ePostType::forGet), Constant::Cloud::cloud_url)) {
         std::cerr << "Fail get_setting_from_cloud\n";
         return ;
     }
 	std::cerr << this->_response << "\n";
-    std::ofstream               f_new_setting(PATH_VARIABLE_SETTING);
+    std::ofstream               f_new_setting(Constant::Setting::path_variable_setting);
     std::vector<std::string>    list_new_setting = Parser::pars_cloud_answer(this->_response);
 
     for (std::string setting : list_new_setting)
@@ -71,14 +71,14 @@ void            CloudController::get_blocklist_from_cloud() {
 
     pf.action = "get-settingmac";
     pf.serial_number = RouterInfoController::getInstance().get_self_info().serial_number;
-    pf.apikey = APIKEY;
+    pf.apikey = Constant::Cloud::apikey;
 
-    if (this->_init_and_execute_post(pf.get_postfilds(ePostType::forGet), CLOUD_URL)) {
+    if (this->_init_and_execute_post(pf.get_postfilds(ePostType::forGet), Constant::Cloud::cloud_url)) {
         std::cerr << "Fail get_setting_from_cloud\n";
         return ;
     }
 
-    std::ofstream               f_new_blocklist(PATH_BLOCKLIST);
+    std::ofstream               f_new_blocklist(Constant::Blocking::path_blocklist);
     std::vector<std::string>    list_blocking_orders = Parser::pars_cloud_answer(this->_response);
 
     for (std::string setting : list_blocking_orders)
@@ -98,9 +98,9 @@ void 		CloudController::notificat(std::string coder, std::string name) {
     pf.serial_number = RouterInfoController::getInstance().get_self_info().serial_number;
     pf.name = name;
 	pf.coder = coder;
-    pf.apikey = APIKEY;
+    pf.apikey = Constant::Cloud::apikey;
 	str_pf = pf.get_postfilds_for_notification();
-    if (this->_init_and_execute_post(str_pf, CLOUD_URL)) {
+    if (this->_init_and_execute_post(str_pf, Constant::Cloud::cloud_url)) {
         std::cerr << "Fail CloudController::notificat\n";
         std::cerr << "end clean CloudController::notificat\n";
         return ;
@@ -181,7 +181,7 @@ std::string CloudController::PostFilds::get_postfilds(ePostType type) {
 std::string CloudController::PostFilds::get_postfilds_for_notification() {
 	std::string postfild = "";
 
-	if (this->coder == NOTIF_JAMMING) {
+	if (this->coder == Constant::Cloud::notif_jamming) {
 		postfild += "action=" + this->action + "&";
 		postfild += "sn=" + this->serial_number + "&";
 		postfild += "coder=" + this->coder + "&";

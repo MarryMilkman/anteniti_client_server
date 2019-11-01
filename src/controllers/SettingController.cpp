@@ -11,18 +11,21 @@ SettingController::SettingController() :
 	_status_controller(StatusController::getInstance()),
 	_cloud_controller(CloudController::getInstance())
 {
-    ScriptExecutor::getOutput::execute(1, "mkdir " DIR_SETTING);
-    ScriptExecutor::getOutput::execute(1, "touch " PATH_SETTING);
-    std::fstream    file(PATH_SETTING);
-    std::string     version;
+	std::string 	script = "mkdir " + Constant::Setting::dir_setting;
 
-    file >> version;
-    if (version.empty() || version != "Version") {
-        file.close();
-        std::ofstream   n_file_setting(PATH_SETTING);
-
-        n_file_setting << "Version -1\n";
-    }
+    ScriptExecutor::getOutput::execute(1, script.c_str());
+	script = "touch " + Constant::Setting::path_setting;
+    ScriptExecutor::getOutput::execute(1, script.c_str());
+    // std::fstream    file(Constant::Setting::path_setting);
+    // std::string     version;
+	//
+    // file >> version;
+    // if (version.empty() || version != "Version") {
+    //     file.close();
+    //     std::ofstream   n_file_setting(Constant::Setting::path_setting);
+	//
+    //     n_file_setting << "Version -1\n";
+    // }
     this->_init_list_setting();
 }
 
@@ -35,14 +38,14 @@ SettingController &SettingController::getInstance() {
     return setting;
 }
 
-int                     SettingController::get_version() {
-    // std::lock_guard<std::mutex> guard(SettingController::_mutex);
-
-    for (Setting setting : this->_list_setting)
-    if (setting.option == "Version")
-    return std::stoi(setting.value);
-    return -1;
-}
+// int                     SettingController::get_version() {
+//     // std::lock_guard<std::mutex> guard(SettingController::_mutex);
+//
+//     for (Setting setting : this->_list_setting)
+//     if (setting.option == "Version")
+//     	return std::stoi(setting.value);
+//     return -1;
+// }
 
 std::string             SettingController::get_str_unapply_options() {
     // std::lock_guard<std::mutex> guard(SettingController::_mutex);
@@ -63,20 +66,16 @@ std::string             SettingController::get_str_unapply_options() {
     // copy some setting to tmp_setting_for_roolback.system
     // apply setting (start same scripts)..................
 eSettingStatus         SettingController::apply_setting() {
-    // std::lock_guard<std::mutex> guard(SettingController::_mutex);
-
-    std::vector<std::string>    list_apply_setting;
+    std::vector<std::string>    list_applyed_setting;
     std::vector<std::string>    list_fail_setting;
-    // eWorkMod                    wm = this->_status_controller.getWorkMod();
 
     std::cerr << "setting: start APPLY!\n";
-    // if (!this->_list_new_setting.size())
-    //     if (!this->is_setting_chenge())
-    //         return eSettingStatus::sApplyFail;
     this->_copy_old_setting();
+	this->_need_reload = false;
     for (Setting setting : this->_list_new_setting) {
         int     answer;
 
+		std::cerr << setting.get_string() << "\n";
         answer = this->_find_setting_end_apply(setting.option, setting.value);
         if (answer < 0) {
             std::cerr << "Not exist: " <<  setting.get_string() << "\n";
@@ -87,54 +86,55 @@ eSettingStatus         SettingController::apply_setting() {
             this->_list_unapply_setting.push_back(setting);
             continue;
         }
-        list_apply_setting.push_back(setting.get_string());
+        list_applyed_setting.push_back(setting.get_string());
     }
     if (this->_list_unapply_setting.size())
         return eSettingStatus::sApplyFail;
-    if (list_apply_setting.size()) {
-		this->_change_list_setting(list_apply_setting);
+    if (this->_need_reload)
 		this->_status_controller.wifi_reload();
-	}
+	this->_change_list_setting(list_applyed_setting);
+	this->_delete_variable_file();
     return eSettingStatus::sApplyOK;
 }
 
     // apply file tmp_setting_for_roolback.system
     // delete variable_setting.system
 eSettingStatus         SettingController::roolback_setting(std::vector<std::string> list_unapply_options) {
-    {
-        // std::lock_guard<std::mutex> guard(SettingController::_mutex);
-        std::vector<std::string>    list_apply_setting;
-        std::vector<std::string>    list_fail_setting;
+    // std::lock_guard<std::mutex> guard(SettingController::_mutex);
+    std::vector<std::string>    list_applyed_setting;
+    std::vector<std::string>    list_fail_setting;
 
-        std::cerr << "setting: start ROOLBACK!\n";
-        for (Setting cpy_setting : this->_list_copy_setting) {
-            bool    is_exist = false;
-            int     answer;
+    std::cerr << "setting: start ROOLBACK!\n";
+	this->_need_reload = false;
+    for (Setting cpy_setting : this->_list_copy_setting) {
+        bool    is_exist = false;
+        int     answer;
 
-            for (std::string option : list_unapply_options)
-                if (option == cpy_setting.option) {
-                    is_exist = true;
-                    break ;
-                }
-            if (!is_exist)
-                continue;
-            answer = this->_find_setting_end_apply(cpy_setting.option, cpy_setting.value);
-            if (answer < 0)
-                continue;
-            if (answer > 0){
-                std::cerr << "Setting fail: " << cpy_setting.get_string() << "\n";
-                this->_list_unapply_setting.push_back(cpy_setting);
-                continue;
+        for (std::string option : list_unapply_options)
+            if (option == cpy_setting.option) {
+                is_exist = true;
+                break ;
             }
-            list_apply_setting.push_back(cpy_setting.get_string());
+        if (!is_exist)
+            continue;
+        answer = this->_find_setting_end_apply(cpy_setting.option, cpy_setting.value);
+        if (answer < 0)
+            continue;
+        if (answer > 0){
+            std::cerr << "Setting fail: " << cpy_setting.get_string() << "\n";
+            this->_list_unapply_setting.push_back(cpy_setting);
+            continue;
         }
-        if (!list_apply_setting.size()) {
-            std::cerr << "Fail apply any setting\n";
-			this->_list_unapply_setting.clear();
-            return eSettingStatus::sRoolbackFail;
-        }
-        this->_change_list_setting(list_apply_setting);
+        list_applyed_setting.push_back(cpy_setting.get_string());
     }
+    if (!list_applyed_setting.size()) {
+        std::cerr << "Fail apply any setting\n";
+		this->_list_unapply_setting.clear();
+        return eSettingStatus::sRoolbackFail;
+    }
+	if (this->_need_reload)
+		this->_status_controller.wifi_reload();
+	this->_change_list_setting(list_applyed_setting);
     this->save_setting();
     return eSettingStatus::sRoolbackOK;
 }
@@ -145,7 +145,7 @@ eSettingStatus         SettingController::save_setting() {
     // std::lock_guard<std::mutex> guard(SettingController::_mutex);
 
     std::cerr << "setting: start SAVE!\n";
-    std::ofstream   file(PATH_SETTING);
+    std::ofstream   file(Constant::Setting::path_setting);
 
     for (Setting setting : this->_list_setting) {
         // std::cerr << setting.get_string() << "------<\n";
@@ -181,10 +181,12 @@ bool        SettingController::is_setting_chenge() {
 	    if (this->_check_variable_file_setting()) {
 	        return true;
 	    } else {
-			std::fstream 	file(PATH_VARIABLE_SETTING);
-
-			if (file.is_open())
-				system("rm " PATH_VARIABLE_SETTING);
+			this->_delete_variable_file();
+			// std::fstream 	file(Constant::Setting::path_setting_scripts);
+			// std::string 	script = "rm " + Constant::Setting::path_setting_scripts;
+			//
+			// if (file.is_open())
+			// 	system(script.c_str());
 		}
         this->_cloud_controller.get_setting_from_cloud();
         if (this->_check_variable_file_setting())
@@ -204,9 +206,9 @@ bool        SettingController::_check_variable_file_setting() {
     int             count_new_setting;
     eWorkMod        wm = this->_status_controller.getWorkMod();
 
-    if (!this->_is_version_update()) {
-        return false;
-    }
+    // if (!this->_is_version_update()) {
+    //     return false;
+    // }
     count_new_setting = this->_approve_new_setting();
     std::cerr << count_new_setting << " new setting.....\n";
     if (count_new_setting < 0 || (wm == eWorkMod::wm_server && !count_new_setting)) {
@@ -215,30 +217,30 @@ bool        SettingController::_check_variable_file_setting() {
     return true;
 }
 
-bool        SettingController::_is_version_update() const {
-    Setting             version = this->_list_setting[0];
-    std::fstream        file_var;
-    std::string         nv_option;
-    std::string         nv_value;
-
-    file_var.open(PATH_VARIABLE_SETTING);
-    if (!file_var.is_open()) {
-        return false;
-    }
-    if (this->_status_controller.getWorkMod() == eWorkMod::wm_client)
-        return true;
-    file_var >> nv_option;
-    if (nv_option != version.option)
-        return false;
-    file_var >> nv_value;
-    file_var.close();
-    try {
-        if (std::stoi(nv_value) > std::stoi(version.value)) {
-            return true;
-        }
-    } catch (std::exception const & e) {}
-    return false;
-}
+// bool        SettingController::_is_version_update() const {
+//     Setting             version = this->_list_setting[0];
+//     std::fstream        file_var;
+//     std::string         nv_option;
+//     std::string         nv_value;
+//
+//     file_var.open(Constant::Setting::path_setting_scripts);
+//     if (!file_var.is_open()) {
+//         return false;
+//     }
+//     if (this->_status_controller.getWorkMod() == eWorkMod::wm_client)
+//         return true;
+//     file_var >> nv_option;
+//     if (nv_option != version.option)
+//         return false;
+//     file_var >> nv_value;
+//     file_var.close();
+//     try {
+//         if (std::stoi(nv_value) > std::stoi(version.value)) {
+//             return true;
+//         }
+//     } catch (std::exception const & e) {}
+//     return false;
+// }
 
 int         SettingController::_approve_new_setting() {
     std::vector<std::string>    list_geted_setting;
@@ -249,7 +251,7 @@ int         SettingController::_approve_new_setting() {
     int                         size;
 
     this->_list_new_setting.clear();
-    file_var.open(PATH_VARIABLE_SETTING);
+    file_var.open(Constant::Setting::path_variable_setting);
     if (!file_var.is_open())
         return -1;
     while(getline(file_var, line)){
@@ -285,7 +287,7 @@ int         SettingController::_approve_new_setting() {
 
 
 void    SettingController::_init_list_setting() {
-    std::fstream    file(PATH_SETTING);
+    std::fstream    file(Constant::Setting::path_setting);
     std::string     line;
 
     while(getline(file, line))
@@ -326,11 +328,12 @@ int         SettingController::_copy_old_setting() {
 }
 
 void                    SettingController::_delete_variable_file() {
-    std::fstream f(PATH_VARIABLE_SETTING);
+    std::fstream f(Constant::Setting::path_variable_setting);
 
     if (f.is_open()) {
+		std::string 	script = "rm " + Constant::Setting::path_variable_setting;
         f.close();
-        system("rm " PATH_VARIABLE_SETTING);
+        system(script.c_str());
     }
 }
 
@@ -466,7 +469,7 @@ int     SettingController::_find_setting_end_apply(std::string setting, std::str
         // return exec_AdBlock(value);
     }
     else if (setting == "Stealth") {
-        // return exec_Stealth(value);
+        return _execution_wrapper_Stealth(value);
     }
     else if (setting == "BNA") {
         // return exec_BNA(value);
@@ -532,7 +535,7 @@ int     SettingController::_apply_group_setting(
 // MARK : - Setting execution wrappers
 
 int 		SettingController::_execution_wrapper_WiFiName(std::string value) {
-	std::string	script(PATH_SETTING_SCRIPTS);
+	std::string	script(Constant::Setting::path_setting_scripts);
 	std::string	ssid(value);
 
 	script += "set_pass.sh";
@@ -547,11 +550,12 @@ int 		SettingController::_execution_wrapper_WiFiName(std::string value) {
 		return 1;
 	std::string 	env_ssid = "SSID=" + ssid;
 	ScriptExecutor::execute(2, env_ssid.c_str(), script.c_str());
+	this->_need_reload = true;
 	return 0;
 }
 
 int 		SettingController::_execution_wrapper_WiFiPass(std::string value) {
-	std::string	script(PATH_SETTING_SCRIPTS);
+	std::string	script(Constant::Setting::path_setting_scripts);
 	std::string	ssid("");
 
 	script += "set_pass.sh";
@@ -580,5 +584,17 @@ int 		SettingController::_execution_wrapper_WiFiPass(std::string value) {
 	std::string 	env_path = "PASS=" + value;
 	std::string 	env_ssid = "SSID=" + ssid;
 	ScriptExecutor::execute(3, env_path.c_str(), env_ssid.c_str(), script.c_str());
+	this->_need_reload = true;
+	return 0;
+}
+
+
+int 		SettingController::_execution_wrapper_Stealth(std::string value) {
+	std::string 	script(Constant::Setting::path_setting_scripts);
+	std::string 	value_for_script = value == "-1" ? "1" : "0";
+
+	script += "hide_wifi.sh";
+	ScriptExecutor::execute(2, script.c_str(), value_for_script.c_str());
+	this->_need_reload = true;
 	return 0;
 }

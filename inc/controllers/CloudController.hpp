@@ -3,20 +3,20 @@
 
 #include "lib.h"
 
-#define APIKEY  "11111111111111111111"
-
-#define TEMP_SERT_PATH "/tmp/temp_sert.pem"
-#define SSL_SERT_URL "https://curl.haxx.se/ca/cacert.pem"
-#define CLOUD_URL "https://www.anteniti.icu"
-#define CLOUD_TMP_FILE_PATH "/tmp/cloud_tmp_file.txt"
-#define SERTIFICATE_FILE_PATH "/home/user/Downloads/cacert.pem"
-
-
-// NOTIFICATE:
-#define NOTIF_CONNECT_NEW_D "0-001"
-#define NOTIF_CONNECT_D "0-002"
-#define NOTIF_DISCONNECT_D "0-003"
-#define NOTIF_JAMMING "0-010"
+// #define APIKEY  "11111111111111111111"
+//
+// #define TEMP_SERT_PATH "/tmp/temp_sert.pem"
+// #define SSL_SERT_URL "https://curl.haxx.se/ca/cacert.pem"
+// #define CLOUD_URL "https://www.anteniti.icu"
+// #define CLOUD_TMP_FILE_PATH "/tmp/cloud_tmp_file.txt"
+// #define SERTIFICATE_FILE_PATH "/home/user/Downloads/cacert.pem"
+//
+//
+// // NOTIFICATE:
+// #define NOTIF_CONNECT_NEW_D "0-001"
+// #define NOTIF_CONNECT_D "0-002"
+// #define NOTIF_DISCONNECT_D "0-003"
+// #define NOTIF_JAMMING "0-010"
 
 // fild *coder*:
 // 0-001 - connect new devices
@@ -28,30 +28,6 @@ enum ePostType {
     forSend = 0,
     forGet
 };
-
-// typedef struct s_memoryStruct {
-//     s_memoryStruct() {
-//         this->memory = (char *)malloc(1);
-//         this->size = 0;
-//     }
-//
-//     ~s_memoryStruct() {
-//         if (this->memory)
-//             free(this->memory);
-//     }
-//
-//     void        clean() {
-//         if (this->memory)
-//             free(this->memory);
-// 		this->memory = (char *)malloc(1);
-//         this->size = 0;
-//     }
-//
-//     char        *memory;
-//     size_t      size;
-// }               t_memoryStruct;
-
-// curl https://curl.haxx.se/ca/cacert.pem > qwe.pem
 
 class CloudController {
     CloudController();
@@ -72,24 +48,12 @@ public:
 
 private:
     std::mutex          _mutex;
-
-    // CURL                *_curl;
 	std::string 		_response;
-    // t_memoryStruct      _response_mem;
-    // t_memoryStruct      _ssl_certificate_mem;
 
     int                 _init_and_execute_post(std::string postfild, std::string url);
-    // int                 _clean_after_post();
 	static void			_prepare_message_for_curl_send(std::string &message);
-
-
-    // int                 _get_ssl_sert();
     void                _pars_get_sert(std::string line);
 
-    // static size_t       _writeMemoryCallback(void *contents,
-    //                                       size_t size,
-    //                                       size_t nmemb,
-    //                                       void *userp);
 
     class PostFilds {
     public:

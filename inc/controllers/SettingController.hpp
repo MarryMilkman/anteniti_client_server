@@ -1,14 +1,14 @@
 #ifndef SETTING_CONTROLLER
 # define SETTING_CONTROLLER
 
-#define DIR_SETTING "/tmp/setting/"
-
-#define PATH_VARIABLE_SETTING "/tmp/setting/variable_setting.system"
-#define PATH_SETTING "/tmp/setting/setting.system"
-#define PATH_COPY_SETTING "/tmp/setting/copy_setting.system"
-
-
-#define PATH_SETTING_SCRIPTS "/root/scripts/"
+// #define DIR_SETTING "/tmp/setting/"
+//
+// #define PATH_VARIABLE_SETTING "/tmp/setting/variable_setting.system"
+// #define PATH_SETTING "/tmp/setting/setting.system"
+// #define PATH_COPY_SETTING "/tmp/setting/copy_setting.system"
+//
+//
+// #define PATH_SETTING_SCRIPTS "/root/scripts/"
 
 # include "lib.h"
 # include "controllers/StatusController.hpp"
@@ -33,7 +33,7 @@ public:
     ~SettingController();
     static SettingController    &getInstance();
     std::string                 get_str_unapply_options();
-    int                         get_version();
+    // int                         get_version();
 
     eSettingStatus  apply_setting();
     eSettingStatus  roolback_setting(std::vector<std::string> list_unapply_options);
@@ -50,6 +50,7 @@ private:
     std::vector<Setting>    _list_setting;
     std::vector<Setting>    _list_copy_setting;
     std::vector<Setting>    _list_unapply_setting;
+	bool 					_need_reload;
 
     void                _init_list_setting();
     int                 _copy_old_setting();
@@ -59,7 +60,7 @@ private:
 
 // Setting CHEKER:
     bool                _check_variable_file_setting();
-    bool                _is_version_update() const;
+    // bool                _is_version_update() const;
     int                 _approve_new_setting();
 
 // APPLY:
@@ -70,6 +71,7 @@ private:
 
 	int 				_execution_wrapper_WiFiName(std::string value);
 	int 				_execution_wrapper_WiFiPass(std::string value);
+	int   				_execution_wrapper_Stealth(std::string value);
 
 };
 

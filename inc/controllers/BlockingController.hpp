@@ -6,8 +6,8 @@
 # include "controllers/CloudController.hpp"
 # include "controllers/StatusController.hpp"
 
-#define DIR_BLOCKLIST "/tmp/blocking/"
-#define PATH_BLOCKLIST "/tmp/blocking/blocking.txt"
+// #define DIR_BLOCKLIST "/tmp/blocking/"
+// #define PATH_BLOCKLIST "/tmp/blocking/blocking.txt"
 
 enum eAccessLevel {
 	al_Limited = 0,
@@ -58,7 +58,8 @@ public:
 	~BlockingController();
 	static BlockingController    &getInstance();
 
-	bool 			download_list();
+	// bool 			download_list();
+	bool 			is_new_orders();
 	bool 			apply();
 
 private:

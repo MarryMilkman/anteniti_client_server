@@ -25,7 +25,7 @@ void                        RouterInfoController::refresh() {
 		return ;
 	}
     RouterData			router("", "root", "11111111", "");
-	std::string 		script = SCRIPT_PATH "self_mac_ip.sh";
+	std::string 		script = Constant::ScriptExec::script_path + "self_mac_ip.sh";
 	std::stringstream 	ss_self_mac_ip(ScriptExecutor::getOutput::execute(1, script.c_str()));
 	std::string			line;
 
@@ -50,20 +50,22 @@ void                        RouterInfoController::refresh() {
 }
 
 void 						RouterInfoController::refresh_satellites_list() {
-	std::string 		script = SCRIPT_PATH "satellites_list.sh";
+	// Lock    lock(RouterInfoController::_mutex, "RouterInfoController");
+	std::string 		script = Constant::ScriptExec::script_path + "satellites_list.sh";
 	std::string			string_satelits = ScriptExecutor::getOutput::execute(1, script.c_str());
 	std::stringstream 	ss_satellites(string_satelits);
 	std::string 		line;
 
 	if (!string_satelits.size())
 		return;
+	std::unique_lock<std::mutex>	ul(this->_mutex, std::try_to_lock);
 	this->_list_routers.clear();
 	while (getline(ss_satellites, line)) {
 		RouterData 			n_router("", "root", "11111111", "");
 		std::stringstream	ss_line(line);
 		std::string			ping;
 
-		script = SCRIPT_PATH "pingcheck.sh";
+		script = Constant::ScriptExec::script_path + "pingcheck.sh";
 		ss_line >> n_router.serial_number;
 		ss_line >> n_router.ip;
 		ping = ScriptExecutor::getOutput::execute(3, script.c_str(), "1", n_router.ip.c_str());
@@ -72,19 +74,30 @@ void 						RouterInfoController::refresh_satellites_list() {
 				this->_list_routers.push_back(n_router);
 		} catch (std::exception &e) {}
 	}
-	for (RouterData rou : this->_list_routers)
-		std::cerr << "ROUTER-satellit: " << rou.ip << "\n";
+	// for (RouterData rou : this->_list_routers)
+	// 	std::cerr << "ROUTER-satellit: " << rou.ip << "\n";
 }
 
 
 std::vector<RouterData>     &RouterInfoController::get_routers_info(){
     // Lock    lock(RouterInfoController::_mutex, "RouterInfoController");
+	std::unique_lock<std::mutex>	ul(this->_mutex, std::try_to_lock);
 
+	if (!ul.owns_lock()) {
+		std::lock_guard<std::mutex> lg(this->_mutex);
+		return this->_list_routers;
+	}
     return this->_list_routers;
 }
 
 RouterData                  &RouterInfoController::get_self_info(){
     // Lock    lock(RouterInfoController::_mutex, "RouterInfoController");
+	std::unique_lock<std::mutex>	ul(this->_mutex, std::try_to_lock);
+
+	if (!ul.owns_lock()) {
+		std::lock_guard<std::mutex> lg(this->_mutex);
+		return this->_self_info;
+	}
 
     return this->_self_info;
 }
@@ -100,15 +113,9 @@ RouterData                  &RouterInfoController::get_server_info(){
 	}
     config_file.open(CONFIG_FILE_PATH);
     getline(config_file, ip);
+	config_file.close();
 	std::cerr << "RouterInfoController::get_server_info, CONFIG_FILE_PATH, ip: *" << ip << "*\n";
-    // if (!inet_aton(ip.c_str(), (in_addr*)&c_addr)) {
-    //     this->_server_info.ip = "";
-    //     this->_server_info.login = "";
-    //     this->_server_info.pass = "";
-    //     config_file.close();
-    //     return this->_server_info;
-    // }
-	/*else*/{
+	{
         bool is_find = false;
         for (RouterData router : this->_list_routers) {
 			std::cerr << "Router from list: *" << router.ip << "*\n";
@@ -117,6 +124,7 @@ RouterData                  &RouterInfoController::get_server_info(){
                 this->_server_info.login = router.login;
                 this->_server_info.pass = router.pass;
                 is_find = true;
+				break ;
             }
         }
         if (!is_find) {
@@ -125,17 +133,57 @@ RouterData                  &RouterInfoController::get_server_info(){
             this->_server_info.pass = "";
         }
     }
-    config_file.close();
     return this->_server_info;
+}
+
+std::string             RouterInfoController::get_info_for_cloud() {
+	std::unique_lock<std::mutex>	ul(this->_mutex, std::try_to_lock);
+	if (!ul.owns_lock()) {
+		std::lock_guard<std::mutex> lg(this->_mutex);
+		DeviceInfo 					dev(this->_self_info);
+
+		return dev.get_string_info();
+	}
+	DeviceInfo 	dev(this->_self_info);
+
+	dev._list_connected_devices = RouterInfoController::get_list_connected_devices();
+	return dev.get_string_info();
+}
+
+
+bool 			RouterInfoController::is_sn_from_mesh(std::string serial_number) {
+	if (this->_self_info.serial_number == serial_number)
+		return true;
+	for (RouterData router : this->_list_routers)
+		if (router.serial_number == serial_number)
+			return true;
+	return false;
 }
 
 
 
-std::string             RouterInfoController::get_info_for_cloud() {
-	DeviceInfo              	dev(this->_self_info);
-	std::string 				connect_devices_info_str;
-	std::string 				script_for_conn_devices = SCRIPT_PATH "station_dump.sh";
-	std::vector<std::string>	type802_segments;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+std::vector<ConnectedDeviceInfo>	RouterInfoController::get_list_connected_devices() {
+	std::vector<ConnectedDeviceInfo>	r_list;
+	std::string 						connect_devices_info_str;
+	std::string 						script_for_conn_devices = Constant::ScriptExec::script_path + "station_dump.sh";
+	std::vector<std::string>			type802_segments;
 
 	connect_devices_info_str = ScriptExecutor::getOutput::execute(1, script_for_conn_devices.c_str());
 	type802_segments = Parser::custom_split(connect_devices_info_str, "Stations on ");
@@ -188,23 +236,13 @@ std::string             RouterInfoController::get_info_for_cloud() {
 				}
 			}
 			connectDevice.set_nick_ip();
-			dev._list_connected_devices.push_back(connectDevice);
+			r_list.push_back(connectDevice);
 		}
 	}
-    return dev.get_string_info();
+    return r_list;
 }
 
 
-
-
-bool 			RouterInfoController::is_sn_from_mesh(std::string serial_number) {
-	if (this->_self_info.serial_number == serial_number)
-		return true;
-	for (RouterData router : this->_list_routers)
-		if (router.serial_number == serial_number)
-			return true;
-	return false;
-}
 
 
 

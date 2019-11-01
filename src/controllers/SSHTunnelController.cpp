@@ -56,9 +56,18 @@ std::map<std::string, std::string>	SSHTunnelController::get_instruction() {
 			if (command_explain_segment[0] != "Command")
 				throw std::exception();
 			r_map["instruction"] = data_segments[1];
-			if (r_map["instruction"] != SEND_MAC)
-				r_map["sn"] = command_explain_segment[1];
+			//
+			if (r_map["instruction"] == Constant::Comunicate::send_mac)
+				return r_map;
+			else if (command_explain_segment.size() != 2)
+				throw std::exception();
+			r_map["sn"] = command_explain_segment[1];
 			return r_map;
+			//
+
+			// if (r_map["instruction"] != Constant::Comunicate::send_mac)
+			// 	r_map["sn"] = command_explain_segment[1];
+			// return r_map;
 		}
 			// throw std::exception();
 	}
@@ -144,12 +153,6 @@ void 	SSHTunnelController::disconnect_tunnel() {
 
 
 bool 		SSHTunnelController::_check_connection() {
-	int error_code = 0;
-
-	// if ((error_code = this->_print_error("SASAt")))
-	// 	std::cerr << error_code << "\n";
-	// 	sleep(1);
-
 	if (!this->_session) {
 		std::cerr << "sesion not init\n";
 		if (this->_initSSHTools() || !this->_session)
@@ -196,7 +199,7 @@ int 		SSHTunnelController::_initSSHTools() {
 	// setsockopt(this->_sock, SOL_SOCKET, SO_RCVTIMEO, &z, sizeof(z));
 	setsockopt(this->_sock, IPPROTO_TCP, TCP_SYNCNT, &z, sizeof(z));
 	// fcntl(this->_sock, F_SETFL, O_NONBLOCK);
-	if (INADDR_NONE == (addr.sin_addr.s_addr = inet_addr(KVM_SERVICE_IP))) {
+	if (INADDR_NONE == (addr.sin_addr.s_addr = inet_addr(Constant::SSHTunnel::kvm_service_ip.c_str()))) {
 		fprintf(stderr, "Invalid remote IP address\n");
 		close(this->_sock);
 		this->_sock = 0;
@@ -236,8 +239,8 @@ int 		SSHTunnelController::_initSSHTools() {
 		return -1;
 	}
 // AUTHORIZATION ---------------------------------------------------------------
-	std::string 	username = SSH_TUNNEL_USERNAME;
-	std::string 	pass = SSH_TUNNEL_PASSWORD;
+	std::string 	username = Constant::SSHTunnel::ssh_tunnel_username;
+	std::string 	pass = Constant::SSHTunnel::ssh_tunnel_password;
 	std::string 	userauthlist;
 
 	// libssh2_hostkey_hash(this->_session, LIBSSH2_HOSTKEY_HASH_SHA1);
@@ -276,7 +279,7 @@ bool 	SSHTunnelController::_refresh_channal() {
 
 
 void 		SSHTunnelController::_write_setting_to_variable_file(std::string setting_str) {
-	std::ofstream 	file(PATH_VARIABLE_SETTING);
+	std::ofstream 	file(Constant::Setting::path_variable_setting);
 
 	file << setting_str;
 }

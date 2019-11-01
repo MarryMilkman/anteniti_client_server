@@ -5,7 +5,7 @@ void    ScriptExecutor::sendSetting(
             std::string login,
             std::string ip)
 {
-    std::string     scriptPath = SCRIPT_PATH;
+    std::string     scriptPath = Constant::ScriptExec::script_path;
     std::string     script;
 
     scriptPath += "sendSetting.sh";
@@ -39,7 +39,7 @@ void     ScriptExecutor::execute(int count, ...) {
 // with output
 
 std::string ScriptExecutor::getOutput::checkWAN() {
-    std::string     scriptPath = SCRIPT_PATH;
+    std::string     scriptPath = Constant::ScriptExec::script_path;
     std::string     line;
     char            buff[64];
     FILE            *pipe;

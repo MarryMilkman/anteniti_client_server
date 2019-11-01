@@ -3,6 +3,8 @@
 
 #include "lib.h"
 
+class ConnectedDeviceInfo;
+
 class RouterInfoController {
     RouterInfoController();
 public:
@@ -14,13 +16,15 @@ public:
     void                        refresh();
 	void 						refresh_satellites_list();
 
-    std::vector<RouterData>     &get_routers_info();
-    RouterData                  &get_self_info();
-    RouterData                  &get_server_info();
+    std::vector<RouterData>				&get_routers_info();
+    RouterData							&get_self_info();
+    RouterData							&get_server_info();
+	std::string                 		get_info_for_cloud();
 
-    std::string                 get_info_for_cloud();
+	static std::vector<ConnectedDeviceInfo>	get_list_connected_devices();
 
-	bool 						is_sn_from_mesh(std::string serial_number);
+
+	bool 								is_sn_from_mesh(std::string serial_number);
 private:
     std::mutex					_mutex;
 

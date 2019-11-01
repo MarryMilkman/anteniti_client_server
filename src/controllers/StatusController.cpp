@@ -26,14 +26,14 @@ StatusController    &StatusController::getInstance() {
 }
 
 void 		StatusController::wifi_reload() {
-	std::string	script = SCRIPT_PATH "wifi_reload.sh";
+	std::string	script = Constant::ScriptExec::script_path + "wifi_reload.sh";
 
 	time(&this->_time_reload);
 	ScriptExecutor::execute(1, script.c_str());
 }
 
 void 		StatusController::mac_list_reload() {
-	std::string 	script = SCRIPT_PATH "hostapd_reload.sh";
+	std::string 	script = Constant::ScriptExec::script_path + "hostapd_reload.sh";
 
 	time(&this->_time_reload);
 	ScriptExecutor::execute(1, script.c_str());
@@ -44,11 +44,11 @@ void 		StatusController::mac_list_reload() {
 // MARK : check is device master (have WAN)
 bool        StatusController::isWAN() {
     // std::lock_guard<std::mutex> guard(StatusController::_mutex);
-	std::string 	script = SCRIPT_PATH "checkwan.sh";
+	std::string 	script = Constant::ScriptExec::script_path + "checkwan.sh";
     std::string     line;
 
     line = ScriptExecutor::getOutput::execute(1, script.c_str());
-	std::cerr << "checkWAN " << line << "\n";
+	// std::cerr << "checkWAN " << line << "\n";
     if (line == "1\n")
         return true;
     return false;
@@ -96,7 +96,6 @@ void        StatusController::_scan() {
 void        StatusController::_startServer() {
     this->_mod = eWorkMod::wm_server;
     try {
-		std::cerr << "SSSSSSSSSSSSSSSSSSSSSSSSSSAAAS\n";
         Server();
     } catch (CustomException &e) {
         std::cerr << e.what() << "\n";

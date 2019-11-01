@@ -24,8 +24,10 @@ private:
 
 	void			_startWork();
 
+	void 			_try_sendAnswer(std::string message, int port, int nbr_try);
+
 	bool 			_listenBroadcast(int timeout);
-	void 			_sendAnswer(std::string message, int port);
+	int 			_sendAnswer(std::string message, int port);
 	void 			_sendSelfInfo();
 
 	std::string 	_get_answer_message_setting_unapply();

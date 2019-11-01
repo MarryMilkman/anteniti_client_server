@@ -48,37 +48,40 @@ bool 	Client::_listenBroadcast(int timeout) {
 	ss >> order;
 	std::cerr << "Message geting: *" << order << "*\n";
 	this->_status_controller.server_availabilit = true;
-	if (order == SEND_INFO)
+	if (order == Constant::Comunicate::send_info)
 		this->_sendSelfInfo();
-	else if (order == SERVER_MOD_FREE || order == WAN_CHENGED)
+	else if (order == Constant::Comunicate::server_mod_free || order == Constant::Comunicate::wan_changed)
 		this->_status_controller.server_availabilit = false;
-	else if (order == KEY_WAS_CHANGED)
-		this->_get_key();
-	else if (order == SEND_SETTING_VERSION) {
-		int version = this->_setting_controller.get_version();
-		this->_sendAnswer(std::to_string(version), LISTEN_PORT);
-	}
+	// else if (order == KEY_WAS_CHANGED)
+	// 	this->_get_key();
+	// else if (order == SEND_SETTING_VERSION) {
+	// 	// int version = this->_setting_controller.get_version();
+	// 	this->_sendAnswer(std::to_string(version), Constant::TCP_IP::listen_port);
+	// }
 
-	else if (order == BLOCKLIST_CHANGE)
+	else if (order == Constant::Comunicate::block_list_changed)
 		this->_blocking_controller.apply();
 
 	// -- setting -- setting -- setting -- setting --
-	else if (order == SETTING_CHANGED) {
+	else if (order == Constant::Comunicate::setting_changed) {
 		if (!this->_setting_controller.is_setting_chenge())
-			this->_sendAnswer(SETTING_NOT_DELIVERED, LISTEN_PORT);
+			this->_try_sendAnswer(Constant::Comunicate::setting_not_delivered, Constant::TCP_IP::listen_port, 3);
+			// this->_sendAnswer(Constant::Comunicate::setting_not_delivered, Constant::TCP_IP::listen_port);
 		else
-			this->_sendAnswer(SETTING_DELIVERED, LISTEN_PORT);
+			this->_try_sendAnswer(Constant::Comunicate::setting_delivered, Constant::TCP_IP::listen_port, 3);
+
+			// this->_sendAnswer(Constant::Comunicate::setting_delivered, Constant::TCP_IP::listen_port);
 	}
-	else if (order == SETTING_APPLY) {
+	else if (order == Constant::Comunicate::apply_setting) {
 		if (this->_setting_controller.apply_setting()) {
-			this->_sendAnswer(this->_get_answer_message_setting_unapply(), LISTEN_PORT);
+			this->_try_sendAnswer(this->_get_answer_message_setting_unapply(), Constant::TCP_IP::listen_port, 30);
 		}
 		else {
-			this->_setting_controller.save_setting();
-			this->_sendAnswer(SETTING_APPLYED, LISTEN_PORT);
+			// this->_setting_controller.save_setting();
+			this->_try_sendAnswer(Constant::Comunicate::setting_applyed, Constant::TCP_IP::listen_port, 30);
 		}
 	}
-	else if (order == SETTING_ROOL_BACK) {
+	else if (order == Constant::Comunicate::setting_rool_back) {
 		std::vector<std::string>	list_unapply_setting;
 		std::string 				str_unapply_setting;
 
@@ -86,12 +89,24 @@ bool 	Client::_listenBroadcast(int timeout) {
 		list_unapply_setting = Parser::custom_split(str_unapply_setting, " ");
 		this->_setting_controller.roolback_setting(list_unapply_setting);
 	}
-	else if (order == SETTING_SAVE)
+	else if (order == Constant::Comunicate::setting_save)
 		this->_setting_controller.save_setting();
 	// -- setting -- setting -- setting -- setting --
 
 	return true;
 }
+
+void 			Client::_try_sendAnswer(std::string message, int port, int nbr_try) {
+	int 	count_try = 0;
+
+	while (count_try < nbr_try) {
+		if (this->_sendAnswer(message, nbr_try) == 0)
+			return;
+		count_try++;
+		sleep(1);
+	}
+}
+
 
 void 			Client::_get_key() {
 
@@ -101,17 +116,17 @@ void 			Client::_sendSelfInfo() {
 	std::string	message;
 
 	message = this->_info_controller.get_info_for_cloud();
-	this->_sendAnswer(message, LISTEN_PORT);
+	this->_sendAnswer(message, Constant::TCP_IP::listen_port);
 }
 
-void 			Client::_sendAnswer(std::string message, int potr) {
+int 			Client::_sendAnswer(std::string message, int potr) {
 	TCP_IP_Worker 			tcp_ip;
 	RouterData 				server = this->_info_controller.get_server_info();
 	int 					i = 0;
 
 	if (!server.ip.size()){
 		std::cerr << "ERROR: this router does not know ip server\n";
-		return;
+		return -1;
 	}
 	// std::cerr << server.ip << " alllllllaaah  pomogi!\n";
 	while (tcp_ip.tcp_connect(server.ip, potr, 1)) {
@@ -123,17 +138,18 @@ void 			Client::_sendAnswer(std::string message, int potr) {
 	if (i > 100) {
 		std::cerr << "(ANSWER NOT SENDED): " << message << "\n";
 		perror("reason: ");
-		return ;
+		return -1;
 	}
 	std::cerr << "success connect, try: " << i << "\n";
 	tcp_ip.tcp_send(message);
+	return 0;
 }
 
 
 std::string 	Client::_get_answer_message_setting_unapply() {
 	std::string 		answer;
 
-	answer += SETTING_NOT_APPLYED;
+	answer += Constant::Comunicate::setting_not_applyed;
 	answer += " " + this->_setting_controller.get_str_unapply_options();
 	return answer;
 }

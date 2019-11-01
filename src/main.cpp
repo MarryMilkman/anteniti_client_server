@@ -14,30 +14,22 @@
 #include <curl/curl.h>
 
 //
-// // split
-//
-// std::vector<std::string> custom_split(std::string str, std::string delim) {
-// 	int 						i;
-// 	std::vector<std::string>	r_list;
-// 	std::string 				prom_str;
-//
-//
-// 	while (str.size()) {
-// 		i = str.find(delim);
-// 		if (i < 0) {
-// 			if (!str.empty())
-// 			r_list.push_back(str);
-// 			break;
-// 		}
-// 		str[i] = 0;
-// 		r_list.push_back(str.c_str());
-// 		str = (str.c_str() + i + delim.size());
-// 	}
-// 	// libssh2_exit();
-// 	return r_list;
-// }
+// // get nick ip by mac
+#include "ScriptExecutor.hpp"
 
-#include "Mutex.hpp"
+std::map<std::string /*type*/, std::string /*value*/>	get_dev_info_by_mac(std::string mac) {
+	std::map<std::string, std::string> 			info_map;
+	std::string 		script = Constant::ScriptExec::script_path + "getname.sh";
+	std::string 		info;
+	std::stringstream	ss;
+
+	info = ScriptExecutor::getOutput::execute(2, script.c_str(), mac);
+	ss << info;
+	ss >> info_map["ip"];
+	ss >> info_map["nick"];
+	return info_map;
+}
+
 
 int main(int argc, char const *argv[])
 {

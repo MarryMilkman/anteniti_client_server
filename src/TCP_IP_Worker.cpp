@@ -34,11 +34,11 @@ int         TCP_IP_Worker::acceptMessage(int port, int timeout_s) {
     FD_ZERO(&readfds);
     FD_SET(this->_sockfd , &readfds);
     int activity = select(this->_sockfd + 1, &readfds, 0, 0, &timeout);
-    std::cerr << activity << " - connected sockets\n";
+    // std::cerr << activity << " - connected sockets\n";
     if (activity > 0)
         this->_accepted_sockfd = accept(this->_sockfd, (struct sockaddr *)&this->_accepted_addres, &acc_add_len);
     else {
-        std::cerr << "Listen timeout\n";
+        // std::cerr << "Listen timeout\n";
         return -1;
     }
     if (this->_accepted_sockfd <= 0) {

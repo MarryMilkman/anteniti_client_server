@@ -3,7 +3,7 @@
 
 # include "lib.h"
 
-#define SCRIPT_PATH "/root/scripts/"
+// #define SCRIPT_PATH "/root/scripts/"
 
 class ScriptExecutor
 {

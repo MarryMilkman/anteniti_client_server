@@ -30,5 +30,5 @@ RouterData &RouterData::operator=(RouterData const & ref) {
 	this->serial_number = ref.serial_number;
     this->is_ok = ref.is_ok;
     this->message = ref.message;
-    return *this;
+	return *this;
 }

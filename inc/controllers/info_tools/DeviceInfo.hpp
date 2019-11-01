@@ -32,17 +32,6 @@ public:
 
 private:
 	void 			_refresh();
-
-    void            _init_self_info();
-
-    //paaaaaaaaaaaaaaaaaaaaaaaaaaaaars
-    //more paaaaaaaars
-
-    void            _init_list_devices();
-
-    //paaaaaaaars again
-    //and araaaaaaaaaaain
-
 };
 
 #endif

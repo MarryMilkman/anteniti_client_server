@@ -3,7 +3,7 @@
 
 # include "lib.h"
 
-# define SCP_PATH "/tmp/variable_setting.txt"
+// # define SCP_PATH "/tmp/variable_setting.txt"
 
 class SSH_Worker {
 public:

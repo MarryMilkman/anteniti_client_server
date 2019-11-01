@@ -102,7 +102,7 @@ std::vector<std::string>    Parser::pars_answer_apply(std::string str_with_answe
     for (std::string line : list_lines) {
         std::vector<std::string> list_unapply_options = custom_split(line, " ");
 
-        if (list_unapply_options[0] == SETTING_APPLYED)
+        if (list_unapply_options[0] == Constant::Comunicate::setting_applyed)
             continue;
         list_unapply_options.erase(list_unapply_options.begin());
         for (std::string option : list_unapply_options) {

@@ -23,6 +23,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -std=c++11 -g -lssl")
 
 
 set(SRC
+		${SRC_DIRECTORY}/Constant.cpp
 		${SRC_DIRECTORY}/server_tools/Server.cpp
 		${SRC_DIRECTORY}/client_tools/Client.cpp
 

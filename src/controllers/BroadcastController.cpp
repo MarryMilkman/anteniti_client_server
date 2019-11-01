@@ -55,8 +55,8 @@ void    BroadcastController::_dataInit_send() {
 
     this->_initGeneralData();
     this->_recvaddr.sin_family = AF_INET;
-    this->_recvaddr.sin_port = htons(BCC_PORT);
-    this->_recvaddr.sin_addr.s_addr = inet_addr(BCC_ADDR);
+    this->_recvaddr.sin_port = htons(Constant::Broadcast::bcc_port);
+    this->_recvaddr.sin_addr.s_addr = inet_addr(Constant::Broadcast::bcc_addr.c_str());
     memset(this->_recvaddr.sin_zero, '\0', sizeof(this->_recvaddr.sin_zero));
     answer_bind = bind(this->_sockfd, (struct sockaddr*) &this->_sendaddr, sizeof(this->_sendaddr));
     if (answer_bind < 0) {
@@ -84,7 +84,7 @@ int     BroadcastController::receive(int timeout_s) {
     FD_SET(this->_sockfd , &readfds);
     int activity = select(this->_sockfd + 1, &readfds, 0, 0, &timeout);
     if (activity <= 0) {
-        std::cerr << "Broadcast recave, timeout\n";
+        // std::cerr << "Broadcast recave, timeout\n";
         if (this->_sockfd > 2)
             close(this->_sockfd);
         return -1;
@@ -110,7 +110,7 @@ void    BroadcastController::_dataInit_recave() {
 
     this->_initGeneralData();
     this->_recvaddr.sin_family = AF_INET;
-    this->_recvaddr.sin_port = htons(BCC_PORT);
+    this->_recvaddr.sin_port = htons(Constant::Broadcast::bcc_port);
     this->_recvaddr.sin_addr.s_addr = INADDR_ANY;
     memset(this->_recvaddr.sin_zero, '\0', sizeof(this->_recvaddr.sin_zero));
     answer_bind = bind(this->_sockfd, (struct sockaddr*) &this->_recvaddr, sizeof(this->_recvaddr));
@@ -137,7 +137,7 @@ void    BroadcastController::_initGeneralData() {
     setsockopt(this->_sockfd, SOL_SOCKET, SO_REUSEPORT, &broadcast, sizeof(broadcast));
     setsockopt(this->_sockfd, SOL_SOCKET, SO_REUSEADDR, &broadcast, sizeof(broadcast));
     this->_sendaddr.sin_family = AF_INET;
-	this->_sendaddr.sin_port = htons(BCC_PORT);
+	this->_sendaddr.sin_port = htons(Constant::Broadcast::bcc_port);
 	this->_sendaddr.sin_addr.s_addr = INADDR_ANY;
     memset(this->_sendaddr.sin_zero, '\0', sizeof(this->_sendaddr.sin_zero));
 }

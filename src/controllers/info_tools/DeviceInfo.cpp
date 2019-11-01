@@ -70,7 +70,7 @@ std::string     DeviceInfo::get_string_info() {
 }
 
 void 		DeviceInfo::_refresh() {
-	std::string 						script = SCRIPT_PATH "sysinfo.sh";
+	std::string 						script = Constant::ScriptExec::script_path + "sysinfo.sh";
 	std::string							str_sysinfo = ScriptExecutor::getOutput::execute(1, script.c_str());
 	std::map<std::string, std::string>	map_sysinfo = Parser::Info::pars_sysinfo(str_sysinfo);
 

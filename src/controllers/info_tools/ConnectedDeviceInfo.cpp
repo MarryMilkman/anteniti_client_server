@@ -62,7 +62,7 @@ std::string     ConnectedDeviceInfo::get_string_info() {
 
 
 void 			ConnectedDeviceInfo::set_nick_ip() {
-	std::string 		script = SCRIPT_PATH "getname.sh";
+	std::string 		script = Constant::ScriptExec::script_path + "getname.sh";
 	std::string 		info;
 	std::stringstream	ss;
 

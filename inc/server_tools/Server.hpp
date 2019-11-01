@@ -10,6 +10,7 @@
 #include "controllers/CloudController.hpp"
 #include "controllers/SSHTunnelController.hpp"
 #include "controllers/BlockingController.hpp"
+#include "controllers/NotificationController.hpp"
 
 class Server
 {
@@ -26,29 +27,29 @@ private:
 	CloudController 		&_cloud_controller;
 	SSHTunnelController 	&_ssh_tunnel_controller;
 	BlockingController		&_blocking_controller;
+	NotificationController	&_notification_controller;
 
 	static std::mutex 	_mutex;
 	std::string 		_error_message;
 	time_t 				_time_last_request;
 
-	void				_startWork();
 	void 				_init();
 
 	void 				_take_on_responsibility();
+	void				_startWork();
+	void 				_handle_instruction(std::string instruction);
+
+
+	// setting
 	bool 				_refresh_setting_in_mesh();
-	bool 				_refresh_blocklist_in_mesh();
 	bool 				_refresh_general_setting_in_mesh();
-
-	void 		_thread_metod();
-	// cloud
-	void 				_get_new_key_and_notify();
-	void 				_form_error_message(std::vector<RouterData> &list_routers);
-
-	// ssh
 	int 				_send_setting_to(std::string path_setting, std::vector<RouterData> &list_routers);
 
-	// comunicated (tcp/ip)
-	static void 		_start_send_devices_info();
+	bool 				_refresh_blocklist_in_mesh();
+
+	void 				_thread_metod();
+
+	// void 				_get_new_key_and_notify();
 
 	void 				_get_info_from_routers_and_send_to_cloud(
 				std::vector<RouterData> list_routers);
@@ -66,6 +67,7 @@ private:
 				int 					timeout);
 
 
+	void 				_form_error_message(std::vector<RouterData> &error_list_routers);
 
 
 };
