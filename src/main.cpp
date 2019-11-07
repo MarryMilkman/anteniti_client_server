@@ -10,6 +10,8 @@
 #include "controllers/BroadcastController.hpp"
 #include "controllers/CloudController.hpp"
 #include "controllers/NotificationController.hpp"
+#include "controllers/AccessController.hpp"
+#include "controllers/ConnectionController.hpp"
 
 #include <curl/curl.h>
 
@@ -40,18 +42,22 @@ int main(int argc, char const *argv[])
 	// if (!libssh2_init(0))
 		// std::cerr << "libssh2 dosnt init!\n";
 
+
+
+
 	CloudController::getInstance();
 	StatusController::getInstance();
 	SettingController::getInstance();
 	RouterInfoController::getInstance();
 	BroadcastController::getInstance();
-	NotificationController &_notification_controller = NotificationController::getInstance();
+	NotificationController::getInstance();
+	ConnectionController &_connection_controller = ConnectionController::getInstance();
 
 	std::cerr << "init controllers end\n";
 
 
 	FlagsHendler f = FlagsHendler(argc, argv, host, port, mod);
-	std::thread 	thread_notification(std::ref(_notification_controller));
+	std::thread 	thread_notification(std::ref(_connection_controller));
 	thread_notification.detach();
 	// sleep(1);
 //////////////////////

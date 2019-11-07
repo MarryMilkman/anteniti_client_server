@@ -7,7 +7,7 @@
 #include "controllers/BroadcastController.hpp"
 #include "controllers/SettingController.hpp"
 #include "controllers/StatusController.hpp"
-#include "controllers/BlockingController.hpp"
+#include "controllers/AccessController.hpp"
 
 class Client
 {
@@ -20,7 +20,7 @@ private:
 	BroadcastController		&_bc_controller;
 	StatusController		&_status_controller;
 	SettingController		&_setting_controller;
-	BlockingController		&_blocking_controller;
+	AccessController		&_access_controller;
 
 	void			_startWork();
 

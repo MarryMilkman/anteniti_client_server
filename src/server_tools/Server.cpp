@@ -14,7 +14,7 @@ Server::Server() :
 	_setting_controller(SettingController::getInstance()),
 	_cloud_controller(CloudController::getInstance()),
 	_ssh_tunnel_controller(SSHTunnelController::getInstance()),
-	_blocking_controller(BlockingController::getInstance()),
+	_access_controller(AccessController::getInstance()),
 	_notification_controller(NotificationController::getInstance())
 {
 	std::cout << "Server:\n";
@@ -92,8 +92,8 @@ void 		Server::_take_on_responsibility() {
 	catch (std::exception &e) {}
 	// if (this->_setting_controller.is_setting_chenge())
 	// if (this->_setting_controller.get_version() >= 0)
-	this->_refresh_blocklist_in_mesh();
-	this->_notification_controller.refresh_list_familiar_devices();
+	this->_refresh_blocklist_in_mesh(Constant::Files::path_access_list);
+	// this->_notification_controller.refresh_list_familiar_devices();
 	if (!this->_refresh_general_setting_in_mesh())
 		std::cerr << "Cant refresh setting in the mesh... AND WE JUST IN THE BEGININ!\n";
 		// while (!this->_refresh_general_setting_in_mesh()) {
@@ -133,9 +133,9 @@ void	Server::_startWork() {
 		}
 		if (timer_send_serial_number.one_time_in(60))
 			this->_info_controller.refresh_satellites_list();
-
 		try {
 			instr_data = this->_ssh_tunnel_controller.get_instruction();
+			std::cerr << instr_data["instruction"] << "\n";
 			if (instr_data["instruction"] != Constant::Comunicate::send_mac && !this->_info_controller.is_sn_from_mesh(instr_data["sn"])) {
 				this->_ssh_tunnel_controller.send_message(Constant::Comunicate::incorrect_addressee + " " + this->_info_controller.get_self_info().serial_number);
 				throw std::exception();
@@ -171,7 +171,7 @@ void 		Server::_handle_instruction(std::string instruction) {
 		this->_ssh_tunnel_controller.send_message(this->_info_controller.get_self_info().serial_number);
 	}
 	else if (instruction == Constant::Comunicate::block_list_changed) {
-		if (this->_refresh_blocklist_in_mesh())
+		if (this->_refresh_blocklist_in_mesh(Constant::Files::path_cloud_access_list))
 			this->_ssh_tunnel_controller.send_message(Constant::Comunicate::blocklist_apply);
 		else
 			this->_ssh_tunnel_controller.send_message(Constant::Comunicate::blocklist_not_apply);
@@ -191,31 +191,33 @@ void 		Server::_handle_instruction(std::string instruction) {
 
 // MARK : Blocking part
 
-bool		Server::_refresh_blocklist_in_mesh() {
+bool		Server::_refresh_blocklist_in_mesh(std::string path_to_file) {
 	std::vector<RouterData> 	list_routers;
 	SSH_Worker 					ssh;
+	std::string 				bc_message;
+	std::lock_guard<std::mutex>	lock_access_controller(this->_access_controller.self_mutex);
 
-	this->_cloud_controller.get_blocklist_from_cloud();
-	if (!this->_blocking_controller.is_new_orders())
+	if (!this->_access_controller.refresh_tmp_map_access_level(path_to_file))
 		return true;
-	// if (!this->_blocking_controller.download_list())
+	// if (!this->_access_controller.download_list())
 	// 	return true;
 	list_routers = this->_info_controller.get_routers_info();
 	for (RouterData router : list_routers) {
 		ssh.login = router.login;
 		ssh.ip = router.ip;
 		ssh.pass = router.pass;
-		if (ssh.scp(Constant::Blocking::path_blocklist, Constant::Blocking::path_blocklist))
+		if (ssh.scp(path_to_file, path_to_file))
 			return false;
 	}
+	bc_message = Constant::Comunicate::block_list_changed + " " + path_to_file;
 	try {
-		this->_bc_controller.send(Constant::Comunicate::block_list_changed, 10);
+		this->_bc_controller.send(bc_message, 10);
 	}
 	catch (std::exception &e) {
 		std::cerr << e.what() << "\n";
 		return false;
 	}
-	return this->_blocking_controller.apply();
+	return this->_access_controller.apply_tmp_map_access_level();
 }
 
 
@@ -241,24 +243,33 @@ bool		Server::_refresh_blocklist_in_mesh() {
 void 		Server::_get_info_from_routers_and_send_to_cloud(std::vector<RouterData> list_routers) {
 	std::vector<RouterData>	error_list;
 	int 					i;
-	std::string 			info = "";
+		// f_ - need free (json_object_put)
+	struct json_object 		*f_json_for_send = json_object_new_object();
+	struct json_object 		*json_arr_routers = json_object_new_array();
 
-	i = 0;
-	info += "RouterBegin" + std::to_string(++i) + std::string(" ");
-	info += this->_info_controller.get_info_for_cloud();
-	info += "RouterEnd" + std::to_string(i) + std::string(" ");
+	json_object_object_add(f_json_for_send, "ROUTERS", json_arr_routers);
+	// i = 0;
+	// info += "RouterBegin" + std::to_string(++i) + std::string(" ");
+	json_object_array_add(json_arr_routers, this->_info_controller.get_router_info_json());
+	// info += "RouterEnd" + std::to_string(i) + std::string(" ");
 	try {
 		this->_bc_controller.send(Constant::Comunicate::send_info, 10);
 		Server::_listenAnswers(list_routers, "Get information...", Constant::TCP_IP::listen_port, 2);
 	} catch (std::exception &e) {}
 	for (RouterData router : list_routers) {
-		info += "RouterBegin" + std::to_string(++i) + " ";
-		info += router.message;
-		info += "RouterEnd" + std::to_string(i) + " ";
+		struct json_object 		*json_from_satelites = json_tokener_parse(router.message.c_str());
+		// info += "RouterBegin" + std::to_string(++i) + " ";
+		// info += router.message;
+		// info += "RouterEnd" + std::to_string(i) + " ";
+		if (json_from_satelites)
+			json_object_array_add(json_arr_routers, json_from_satelites);
 		// router.is_ok = true;
 		std::cerr << "Info from ip " << router.ip << ":\n";
 		std::cerr << router.message << "\n- - - - - - -\n";
 	}
+	std::string 	info = json_object_get_string(f_json_for_send);
+
+	json_object_put(f_json_for_send);
 	// parser.pars_and_add_to_answer(this->_info_controller.get_info_for_cloud());
 	// std::cerr << info << "\n";
 	this->_cloud_controller.post_info_to_cloud(info);
@@ -353,7 +364,7 @@ std::mutex 		Server::_mutex;
 
 
 
-// // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // 
+// // // // // // // // // // // // // // // // // // // // // // // // // // // // // // //
 // MARK : SETTING section - SETTING section - SETTING section - SETTING section
 
 bool    	Server::_refresh_general_setting_in_mesh() {
@@ -370,7 +381,7 @@ bool    	Server::_refresh_general_setting_in_mesh() {
 		// 	i++;
 		// }
 		list_routers = this->_info_controller.get_routers_info();
-		if (this->_send_and_notify_setting_chenge(Constant::Setting::path_setting, list_routers)){
+		if (this->_send_and_notify_setting_chenge(Constant::Files::path_setting, list_routers)){
 			std::cerr << "setting dont send to all routers...\n";
 			// this->_refresh_setting_in_mesh();
 			return false;
@@ -402,7 +413,7 @@ bool    	Server::_refresh_general_setting_in_mesh() {
 bool 		Server::_refresh_setting_in_mesh() {
 	std::vector<RouterData> list_routers = this->_info_controller.get_routers_info();
 
-	if (this->_send_and_notify_setting_chenge(Constant::Setting::path_variable_setting, list_routers)){
+	if (this->_send_and_notify_setting_chenge(Constant::Files::path_variable_setting, list_routers)){
 		std::cerr << "setting dont send to all routers... resend setting to routers\n";
 		// this->_refresh_setting_in_mesh();
 		return false;
@@ -541,7 +552,7 @@ int 	Server::_send_setting_to(std::string path_setting, std::vector<RouterData> 
 		ssh.login = router.login;
 		ssh.ip = router.ip;
 		ssh.pass = router.pass;
-		if (ssh.scp(path_setting, Constant::Setting::path_variable_setting))
+		if (ssh.scp(path_setting, Constant::Files::path_variable_setting))
 			return -1;
 	}
 	return 0;

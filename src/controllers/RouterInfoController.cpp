@@ -136,18 +136,18 @@ RouterData                  &RouterInfoController::get_server_info(){
     return this->_server_info;
 }
 
-std::string             RouterInfoController::get_info_for_cloud() {
+struct json_object	*RouterInfoController::get_router_info_json() {
 	std::unique_lock<std::mutex>	ul(this->_mutex, std::try_to_lock);
 	if (!ul.owns_lock()) {
 		std::lock_guard<std::mutex> lg(this->_mutex);
 		DeviceInfo 					dev(this->_self_info);
 
-		return dev.get_string_info();
+		return dev.get_json_info();
 	}
 	DeviceInfo 	dev(this->_self_info);
 
 	dev._list_connected_devices = RouterInfoController::get_list_connected_devices();
-	return dev.get_string_info();
+	return dev.get_json_info();
 }
 
 

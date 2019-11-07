@@ -1,11 +1,11 @@
-#include "controllers/notification_tools/Event.hpp"
+#include "EventConnect.hpp"
 #include "controllers/info_tools/ConnectedDeviceInfo.hpp"
 #include "Parser.hpp"
 
-Event::Event() {
+EventConnect::EventConnect() {
 }
 
-Event::Event(std::string str_event) {
+EventConnect::EventConnect(std::string str_event) {
 	{
 		std::vector<std::string> 	list_str_param = Parser::custom_split(str_event, " ");
 
@@ -43,13 +43,13 @@ Event::Event(std::string str_event) {
 	this->is_new = false;
 }
 
-Event::~Event() {}
+EventConnect::~EventConnect() {}
 
-Event::Event(Event const & ref) {
+EventConnect::EventConnect(EventConnect const & ref) {
 	*this = ref;
 }
 
-Event	&Event::operator=(Event const & ref) {
+EventConnect	&EventConnect::operator=(EventConnect const & ref) {
 	this->conn = ref.conn;
 	this->mac = ref.mac;
 	this->iface = ref.iface;
@@ -59,7 +59,7 @@ Event	&Event::operator=(Event const & ref) {
 	return *this;
 }
 
-std::string 	Event::get_str() const {
+std::string 	EventConnect::get_str() const {
 	std::stringstream ss;
 
 	ss << this->conn << " " << this->mac << " " << this->nick << " "

@@ -9,7 +9,7 @@
 #include "controllers/SettingController.hpp"
 #include "controllers/CloudController.hpp"
 #include "controllers/SSHTunnelController.hpp"
-#include "controllers/BlockingController.hpp"
+#include "controllers/AccessController.hpp"
 #include "controllers/NotificationController.hpp"
 
 class Server
@@ -26,7 +26,7 @@ private:
 	SettingController 		&_setting_controller;
 	CloudController 		&_cloud_controller;
 	SSHTunnelController 	&_ssh_tunnel_controller;
-	BlockingController		&_blocking_controller;
+	AccessController		&_access_controller;
 	NotificationController	&_notification_controller;
 
 	static std::mutex 	_mutex;
@@ -45,7 +45,7 @@ private:
 	bool 				_refresh_general_setting_in_mesh();
 	int 				_send_setting_to(std::string path_setting, std::vector<RouterData> &list_routers);
 
-	bool 				_refresh_blocklist_in_mesh();
+	bool 				_refresh_blocklist_in_mesh(std::string path_to_file);
 
 	void 				_thread_metod();
 

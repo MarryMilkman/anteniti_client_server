@@ -16,7 +16,7 @@ Client::Client() :
    _bc_controller(BroadcastController::getInstance()),
    _status_controller(StatusController::getInstance()),
    _setting_controller(SettingController::getInstance()),
-   _blocking_controller(BlockingController::getInstance())
+   _access_controller(AccessController::getInstance())
 {
 	std::cerr << "Client:\n";
 	// this->_get_key();
@@ -59,8 +59,13 @@ bool 	Client::_listenBroadcast(int timeout) {
 	// 	this->_sendAnswer(std::to_string(version), Constant::TCP_IP::listen_port);
 	// }
 
-	else if (order == Constant::Comunicate::block_list_changed)
-		this->_blocking_controller.apply();
+	else if (order == Constant::Comunicate::block_list_changed) {
+		std::string 	path_to_file;
+
+		ss >> path_to_file;
+		this->_access_controller.refresh_tmp_map_access_level(path_to_file);
+		this->_access_controller.apply_tmp_map_access_level();
+	}
 
 	// -- setting -- setting -- setting -- setting --
 	else if (order == Constant::Comunicate::setting_changed) {
@@ -113,9 +118,11 @@ void 			Client::_get_key() {
 }
 
 void 			Client::_sendSelfInfo() {
-	std::string	message;
+	struct json_object	*jobj;
+	std::string 		message;
 
-	message = this->_info_controller.get_info_for_cloud();
+	jobj = this->_info_controller.get_router_info_json();
+	message = json_object_get_string(jobj);
 	this->_sendAnswer(message, Constant::TCP_IP::listen_port);
 }
 

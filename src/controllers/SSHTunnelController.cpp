@@ -279,7 +279,7 @@ bool 	SSHTunnelController::_refresh_channal() {
 
 
 void 		SSHTunnelController::_write_setting_to_variable_file(std::string setting_str) {
-	std::ofstream 	file(Constant::Setting::path_variable_setting);
+	std::ofstream 	file(Constant::Files::path_variable_setting);
 
 	file << setting_str;
 }

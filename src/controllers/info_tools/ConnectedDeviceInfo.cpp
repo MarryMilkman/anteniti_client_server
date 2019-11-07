@@ -41,6 +41,24 @@ ConnectedDeviceInfo &ConnectedDeviceInfo::operator=(ConnectedDeviceInfo const &r
 ConnectedDeviceInfo::~ConnectedDeviceInfo() {
 }
 
+struct json_object 	*ConnectedDeviceInfo::get_json_info() {
+	struct json_object	*r_json = json_object_new_object();
+
+	json_object_object_add(r_json, "IP", json_object_new_string(this->_ip.c_str()));
+	json_object_object_add(r_json, "MAC", json_object_new_string(this->_mac.c_str()));
+	json_object_object_add(r_json, "Signal", json_object_new_string(std::to_string(this->_signal).c_str()));
+	json_object_object_add(r_json, "Nick", json_object_new_string(this->_nick.c_str()));
+	// json_object_object_add(r_json, "Group", json_object_new_string(this->_group.c_str()));
+	json_object_object_add(r_json, "TypeConn", json_object_new_string(this->_typeConn.c_str()));
+	json_object_object_add(r_json, "Type802", json_object_new_string(this->_type802.c_str()));
+	json_object_object_add(r_json, "TimeWork", json_object_new_string(this->_timeWork.c_str()));
+	// json_object_object_add(r_json, "InactiveTime", json_object_new_string(this->_inactiveTime.c_str()));
+	// json_object_object_add(r_json, "Location", json_object_new_string(this->_location.c_str()));
+	// json_object_object_add(r_json, "HostName", json_object_new_string(this->_hostName.c_str()));
+	// json_object_object_add(r_json, "Blocked", json_object_new_string(std::string(this->_isBlocked ? "yes" : "no").c_str()));
+	return r_json;
+}
+
 std::string     ConnectedDeviceInfo::get_string_info() {
     std::string     info;
     // int             i = 1;

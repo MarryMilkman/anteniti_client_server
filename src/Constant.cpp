@@ -32,8 +32,6 @@ std::string	Constant::Comunicate::router_is_not_available 	= "router_is_not_avai
 
 // MARK: Blocking
 
-std::string	Constant::Blocking::dit_blocklist 				= "/tmp/blocking/";
-std::string	Constant::Blocking::path_blocklist 				= "/tmp/blocking/blocking.txt";
 
 // MARK: Broadcast
 
@@ -42,10 +40,8 @@ int 		Constant::Broadcast::bcc_port 					= 9390;
 
 // MARK: Cloud
 std::string 	Constant::Cloud::apikey 					= "11111111111111111111";
-std::string 	Constant::Cloud::temp_sert_path 			= "/tmp/temp_sert.pem";
 std::string 	Constant::Cloud::ssl_sert_url 				= "https://curl.haxx.se/ca/cacert.pem";
 std::string 	Constant::Cloud::cloud_url 					= "https://www.anteniti.icu";
-std::string 	Constant::Cloud::cloud_tmp_file_path 		= "/tmp/cloud_tmp_file.txt";
 std::string 	Constant::Cloud::sertificate_file_path 		= "/home/user/Downloads/cacert.pem";
 
 std::string 	Constant::Cloud::notif_connect_new_d 		= "0-001";
@@ -55,20 +51,9 @@ std::string 	Constant::Cloud::notif_jamming 				= "0-010";
 
 // MARK: Notification
 
-std::string		Constant::Notification::connection_log		= "/tmp/connection_log.txt";
 int 			Constant::Notification::notification_port 	= 9939;
-std::string 	Constant::Notification::path_familiar_devices = "/tmp/familiar_devices.info";
 int 			Constant::Notification::critical_number_dis = 3;
 
-// MARK: Setting
-
-std::string		Constant::Setting::dir_setting 				= "/tmp/setting/";
-
-std::string		Constant::Setting::path_variable_setting 	= "/tmp/setting/variable_setting.system";
-std::string		Constant::Setting::path_setting 			= "/tmp/setting/setting.system";
-std::string		Constant::Setting::path_copy_setting 		= "/tmp/setting/copy_setting.system";
-
-std::string		Constant::Setting::path_setting_scripts 	= "/root/scripts/";
 
 // MARK : SSHTunnel
 
@@ -83,3 +68,19 @@ std::string		Constant::ScriptExec::script_path 			= "/root/scripts/";
 // MARK : TCP_IP
 
 int				Constant::TCP_IP::listen_port 				= 9742;
+
+// MARK : Files
+
+std::string 	Constant::Files::path_cloud_access_list 	= "/root/server_client_info/cloud_access_list.info";
+std::string		Constant::Files::path_access_list 			= "/root/server_client_info/access_list.info";
+std::string		Constant::Files::path_setting_scripts 		= "/root/scripts/";
+
+std::string		Constant::Files::dit_server_client_info		= "/root/server_client_info/";
+std::string 	Constant::Files::temp_sert_path 			= "/tmp/temp_sert.pem";
+std::string 	Constant::Files::cloud_tmp_file_path 		= "/tmp/cloud_tmp_file.txt";
+std::string		Constant::Files::connection_log		= "/root/server_client_info/connection_log.txt";
+std::string		Constant::Files::dir_setting 				= "/root/server_client_info/setting/";
+// std::string 	Constant::Notification::path_familiar_devices = "/root/server_client_info/familiar_devices.info";
+std::string		Constant::Files::path_variable_setting 	= "/root/server_client_info/setting/variable_setting.system";
+std::string		Constant::Files::path_setting 			= "/root/server_client_info/setting/setting.system";
+std::string		Constant::Files::path_copy_setting 		= "/root/server_client_info/setting/copy_setting.system";

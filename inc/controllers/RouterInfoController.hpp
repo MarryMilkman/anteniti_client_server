@@ -19,7 +19,7 @@ public:
     std::vector<RouterData>				&get_routers_info();
     RouterData							&get_self_info();
     RouterData							&get_server_info();
-	std::string                 		get_info_for_cloud();
+	struct json_object					*get_router_info_json();
 
 	static std::vector<ConnectedDeviceInfo>	get_list_connected_devices();
 

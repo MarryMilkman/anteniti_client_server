@@ -4,15 +4,18 @@ project(MyProject)
 
 add_subdirectory(libssh2-1.8.0)
 add_subdirectory(curl-7.65.3)
+add_subdirectory(json-c)
 
 link_libraries(libssh2)
 link_libraries(libcurl)
+link_libraries(json-c)
 
 include_directories (
 	./inc
 	./inc/client_tools
 	./inc/server_tools
 	libssh2-1.8.0/include
+	json-c
 )
 
 set(SRC_DIRECTORY "./src")
@@ -32,10 +35,10 @@ set(SRC
 		${SRC_DIRECTORY}/controllers/StatusController.cpp
 		${SRC_DIRECTORY}/controllers/CloudController.cpp
 		${SRC_DIRECTORY}/controllers/NotificationController.cpp
-		${SRC_DIRECTORY}/controllers/notification_tools/Event.cpp
+		${SRC_DIRECTORY}/controllers/ConnectionController.cpp
+		${SRC_DIRECTORY}/controllers/AccessController.cpp
 
 		${SRC_DIRECTORY}/controllers/SettingController.cpp
-		${SRC_DIRECTORY}/controllers/BlockingController.cpp
 		${SRC_DIRECTORY}/controllers/setting_tools/Setting.cpp
 
 		${SRC_DIRECTORY}/controllers/RouterInfoController.cpp
@@ -46,6 +49,7 @@ set(SRC
 		${SRC_DIRECTORY}/RouterData.cpp
 		${SRC_DIRECTORY}/main.cpp
 		${SRC_DIRECTORY}/Timer.cpp
+		${SRC_DIRECTORY}/EventConnect.cpp
 
 		${SRC_DIRECTORY}/ScriptExecutor.cpp
 		${SRC_DIRECTORY}/FlagsHendler.cpp

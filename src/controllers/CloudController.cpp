@@ -1,7 +1,6 @@
 #include "controllers/CloudController.hpp"
 #include "controllers/RouterInfoController.hpp"
 #include "controllers/SettingController.hpp"
-#include "controllers/BlockingController.hpp"
 #include "ScriptExecutor.hpp"
 #include "Parser.hpp"
 #include "Mutex.hpp"
@@ -56,7 +55,7 @@ void            CloudController::get_setting_from_cloud() {
         return ;
     }
 	std::cerr << this->_response << "\n";
-    std::ofstream               f_new_setting(Constant::Setting::path_variable_setting);
+    std::ofstream               f_new_setting(Constant::Files::path_variable_setting);
     std::vector<std::string>    list_new_setting = Parser::pars_cloud_answer(this->_response);
 
     for (std::string setting : list_new_setting)
@@ -78,7 +77,7 @@ void            CloudController::get_blocklist_from_cloud() {
         return ;
     }
 
-    std::ofstream               f_new_blocklist(Constant::Blocking::path_blocklist);
+    std::ofstream               f_new_blocklist(Constant::Files::path_cloud_access_list);
     std::vector<std::string>    list_blocking_orders = Parser::pars_cloud_answer(this->_response);
 
     for (std::string setting : list_blocking_orders)
@@ -117,9 +116,10 @@ void 		CloudController::notificat(std::string coder, std::string name) {
 
 int         CloudController::_init_and_execute_post(std::string postfild, std::string url) {
     std::cerr << "_init_and_execute_post!\n";
-	std::string 	request = "\"" + url + "/?" + postfild + "\"";
+	std::string 	request = url + "/?" + postfild;
 
 	CloudController::_prepare_message_for_curl_send(request);
+	request = "\"" + request + "\"";
 	// std::cerr << request << "\n";
 	// std::cerr <<  "curl " << request.c_str() << "\n";
 	this->_response = ScriptExecutor::getOutput::execute(2, "curl", request.c_str());
@@ -128,18 +128,23 @@ int         CloudController::_init_and_execute_post(std::string postfild, std::s
 
 }
 
+static void 	s_l_replacer(std::string &message, std::string replace, std::string search) {
+	for(size_t pos = 0; ; pos += replace.size()) {
+		pos = message.find(search, pos);
+		if(pos == std::string::npos)
+			break;
+		message.erase(pos, search.size());
+		message.insert(pos, replace);
+	}
+}
 
 void 	CloudController::_prepare_message_for_curl_send(std::string &message) {
-	std::string 	replace = "%20";
-	std::string 	search = " ";
-
-	for(size_t pos = 0; ; pos += replace.size()) {
-        pos = message.find(search, pos);
-        if(pos == std::string::npos)
-			break;
-        message.erase(pos, search.size());
-        message.insert(pos, replace);
-    }
+	s_l_replacer(message, "%20", " ");
+	s_l_replacer(message, "\\[", "[");
+	s_l_replacer(message, "\\]", "]");
+	s_l_replacer(message, "\\{", "{");
+	s_l_replacer(message, "\\}", "}");
+	s_l_replacer(message, "\\\"", "\"");
 }
 
 
@@ -201,7 +206,7 @@ std::string CloudController::PostFilds::_get_pf_for_send() {
 
 	postfilds += "action=" + this->action + "&";
     postfilds += "sn=" + this->serial_number + "&";
-    postfilds += "text=\\[" + this->text + "\\]&";
+    postfilds += "text=" + this->text + "&";
     postfilds += "apikey=" + this->apikey;
     return postfilds;
 }

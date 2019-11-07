@@ -42,6 +42,24 @@ DeviceInfo &DeviceInfo::operator=(DeviceInfo const &ref) {
 DeviceInfo::~DeviceInfo() {
 }
 
+struct json_object 	*DeviceInfo::get_json_info() {
+	struct json_object	*r_json = json_object_new_object();
+	struct json_object	*arr_conn_dev_json = json_object_new_array();
+
+	json_object_object_add(r_json, "SN", json_object_new_string(this->_sn.c_str()));
+	json_object_object_add(r_json, "IP", json_object_new_string(this->_ip.c_str()));
+	json_object_object_add(r_json, "OS", json_object_new_string(this->_os.c_str()));
+	json_object_object_add(r_json, "Model", json_object_new_string(this->_model.c_str()));
+	json_object_object_add(r_json, "EtherA", json_object_new_string(this->_etherA.c_str()));
+	json_object_object_add(r_json, "EtherB", json_object_new_string(this->_etherB.c_str()));
+	json_object_object_add(r_json, "WifiA", json_object_new_string(this->_wifiA.c_str()));
+	json_object_object_add(r_json, "WifiB", json_object_new_string(this->_wifiB.c_str()));
+	json_object_object_add(r_json, "DEVICE", arr_conn_dev_json);
+	for (ConnectedDeviceInfo dci : this->_list_connected_devices)
+		json_object_array_add(arr_conn_dev_json, dci.get_json_info());
+	return r_json;
+}
+
 std::string     DeviceInfo::get_string_info() {
     std::string     info = "";
     int             i = 1;

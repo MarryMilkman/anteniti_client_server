@@ -53,7 +53,6 @@ public:
 		static std::string	temp_sert_path;
 		static std::string	ssl_sert_url;
 		static std::string	cloud_url;
-		static std::string	cloud_tmp_file_path;
 		static std::string	sertificate_file_path;
 
 		static std::string	notif_connect_new_d;
@@ -63,20 +62,8 @@ public:
 	};
 	class Notification {
 	public:
-		static std::string	connection_log;
 		static int 			notification_port;
-		static std::string 	path_familiar_devices;
 		static int			critical_number_dis;
-	};
-	class Setting {
-	public:
-		static std::string	dir_setting;
-
-		static std::string	path_variable_setting;
-		static std::string	path_setting;
-		static std::string	path_copy_setting;
-
-		static std::string	path_setting_scripts;
 	};
 	class SSHTunnel {
 	public:
@@ -91,6 +78,22 @@ public:
 	class TCP_IP {
 	public:
 		static int			listen_port;
+	};
+	class Files {
+	public:
+		static std::string			path_cloud_access_list;
+		static std::string			path_access_list;
+		static std::string			path_setting_scripts;
+
+		static std::string			dit_server_client_info;
+		static std::string 			temp_sert_path;
+		static std::string 			cloud_tmp_file_path;
+		static std::string			connection_log;
+		static std::string			dir_setting;
+		// static std::string 		ation::path_familiar_devices;
+		static std::string			path_variable_setting;
+		static std::string			path_setting;
+		static std::string			path_copy_setting;
 	};
 
 
