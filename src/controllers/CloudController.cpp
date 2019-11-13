@@ -76,12 +76,9 @@ void            CloudController::get_blocklist_from_cloud() {
         std::cerr << "Fail get_setting_from_cloud\n";
         return ;
     }
-
     std::ofstream               f_new_blocklist(Constant::Files::path_cloud_access_list);
-    std::vector<std::string>    list_blocking_orders = Parser::pars_cloud_answer(this->_response);
 
-    for (std::string setting : list_blocking_orders)
-        f_new_blocklist << setting << "\n";
+    f_new_blocklist << this->_response;
     f_new_blocklist.close();
 }
 

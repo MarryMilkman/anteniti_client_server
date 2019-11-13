@@ -57,7 +57,7 @@ int 			Constant::Notification::critical_number_dis = 3;
 
 // MARK : SSHTunnel
 
-std::string		Constant::SSHTunnel::kvm_service_ip 		= "192.168.1.232";
+std::string		Constant::SSHTunnel::kvm_service_ip 		= "192.168.1.179";
 std::string		Constant::SSHTunnel::ssh_tunnel_username 	= "user";
 std::string		Constant::SSHTunnel::ssh_tunnel_password 	= "11111111";
 

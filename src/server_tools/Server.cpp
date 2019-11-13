@@ -230,16 +230,11 @@ bool		Server::_refresh_blocklist_in_mesh(std::string path_to_file) {
 
 
 	// get info from routers and then send it to the Cloud:
-	// 	scenario A:
+	//		-make json for send
+	//		-add to json self info
 	//		-send broadcast SEND_INFO
-	//		-listen answer and story them
-	//		-pars this info (make list of info)
-	//		-add to list info self info
-	// 		-send list info to cloud
-	//	scenario B:
-	//		-send broadcast SEND_INFO
-	//		-all routers send info to cloud independently
-	// P.S. now use scenario A
+	//		-listen answer and story them to json
+	// 		-send json like str to cloud
 void 		Server::_get_info_from_routers_and_send_to_cloud(std::vector<RouterData> list_routers) {
 	std::vector<RouterData>	error_list;
 	int 					i;
@@ -248,8 +243,6 @@ void 		Server::_get_info_from_routers_and_send_to_cloud(std::vector<RouterData> 
 	struct json_object 		*json_arr_routers = json_object_new_array();
 
 	json_object_object_add(f_json_for_send, "ROUTERS", json_arr_routers);
-	// i = 0;
-	// info += "RouterBegin" + std::to_string(++i) + std::string(" ");
 	json_object_array_add(json_arr_routers, this->_info_controller.get_router_info_json());
 	// info += "RouterEnd" + std::to_string(i) + std::string(" ");
 	try {
@@ -283,8 +276,9 @@ void 		Server::_get_info_from_routers_and_send_to_cloud(std::vector<RouterData> 
 	//		port - listen port
 	// 		timeout - max time of listen answer (if timeout left,
 	//				and we dont have answer - stop listening)
-	//	-for routers from list set options: is_ok = false && message = ROUNER_NOT_AVAILABLE
-	//	 (if the router does not send a response, its fields are in the correct position)
+	//	-for routers from list set options:
+	//		is_ok = false && message = Constant::Comunicate::router_is_not_available
+	//	 	(if the router does not send a response, its fields are in the correct position)
 	//	-listen answer from list_routers
 	//	-check is answer of concret router (verify by ip) is correct
 	// 		a) true - parameters router.is_ok = true && router.message = ""

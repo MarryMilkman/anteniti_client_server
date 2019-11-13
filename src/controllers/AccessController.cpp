@@ -22,26 +22,42 @@ AccessController &AccessController::getInstance() {
 
 ///////////// /////////////// //////////////// //////////////// /////////////
 
+bool 			AccessController::apply_acces_level_for_mac(std::string mac) {
+	t_accessLevel	access_level = this->_tmp_map_access_level[mac];
+
+	if (access_level.pattern == eAccessPattern::al_Limited)
+		this->_makeLimited(mac, access_level.group);
+	// else if (access_level.pattern == eAccessPattern::al_Blocked)
+	// 	this->_makeBlocked(mac, access_level.group);
+	// else if (access_level.pattern == eAccessPattern::al_Guest)
+	// 	this->_makeGuest(mac, access_level.group);
+	else if (access_level.pattern == eAccessPattern::al_Main)
+		this->_makeGeneral(mac, access_level.group);
+	// else if (access_level.pattern == eAccessPattern::al_Smart)
+	// 	this->_makeSmart(mac, access_level.group);
+
+}
+
 
 bool 			AccessController::apply_tmp_map_access_level() {
 	std::string 	mac;
-	eAccessLevel 	access_level;
+	t_accessLevel 	access_level;
 
 	if (!this->_tmp_map_access_level.size())
 		return false;
 	for (auto item : this->_tmp_map_access_level) {
 		mac = item.first;
 		access_level = item.second;
-		if (access_level == eAccessLevel::al_Limited)
-			this->_makeLimited(mac);
-		// else if (access_level == eAccessLevel::al_Blocked)
-		// 	this->_makeBlocked(mac);
-		// else if (access_level == eAccessLevel::al_Guest)
-		// 	this->_makeGuest(mac);
-		else if (access_level == eAccessLevel::al_General)
-			this->_makeGeneral(mac);
-		// else if (access_level == eAccessLevel::al_Smart)
-		// 	this->_makeSmart(mac);
+		if (access_level.pattern == eAccessPattern::al_Limited)
+			this->_makeLimited(mac, access_level.group);
+		// else if (access_level.pattern == eAccessPattern::al_Blocked)
+		// 	this->_makeBlocked(mac, access_level.group);
+		// else if (access_level.pattern == eAccessPattern::al_Guest)
+		// 	this->_makeGuest(mac, access_level.group);
+		else if (access_level.pattern == eAccessPattern::al_Main)
+			this->_makeGeneral(mac, access_level.group);
+		// else if (access_level.pattern == eAccessPattern::al_Smart)
+		// 	this->_makeSmart(mac, access_level.group);
 		this->_map_access_level[mac] = access_level;
 	}
 	this->_rewrite_access_list();
@@ -60,13 +76,13 @@ bool 			AccessController::refresh_tmp_map_access_level(std::string path_to_file)
 bool			AccessController::refresh_tmp_map_access_level(std::vector<EventConnect> list_events) {
 	this->_tmp_map_access_level.clear();
 	for (EventConnect event : list_events)
-		this->_tmp_map_access_level[event.mac] = eAccessLevel::al_Limited;
+		this->_tmp_map_access_level[event.mac] = t_accessLevel();
 	if (this->_tmp_map_access_level.size())
 		return true;
 	return false;
 }
 
-std::map<std::string /*mac*/, eAccessLevel>	&AccessController::get_map_access_level() {
+std::map<std::string /*mac*/, t_accessLevel>	&AccessController::get_map_access_level() {
 	return this->_map_access_level;
 }
 
@@ -77,8 +93,10 @@ std::map<std::string /*mac*/, eAccessLevel>	&AccessController::get_map_access_le
 
 
 bool 		AccessController::_init_tmp_map_from(std::string path_to_file) {
-	std::fstream	file_accesslist;
-	std::string 	line;
+	std::fstream		file_accesslist;
+	std::string 		line;
+	std::string 		str_json;
+	struct json_object	*f_js_array_access;
 
 	if (path_to_file == Constant::Files::path_cloud_access_list)
 		this->_cloud_controller.get_blocklist_from_cloud();
@@ -87,35 +105,69 @@ bool 		AccessController::_init_tmp_map_from(std::string path_to_file) {
 		return false;
 	this->_tmp_map_access_level.clear();
 	while (getline(file_accesslist, line)) {
-		std::stringstream 	ss(line);
-		std::string 		mac;
-		eAccessLevel 		access_level;
-		std::string 		str_access_level;
-		std::string 		active_status;
-
-		ss >> mac;
-		ss >> str_access_level;
-		ss >> active_status;
-		if (active_status == "1")
-			continue;
-		try {
-			access_level = static_cast<eAccessLevel>(std::stoi(str_access_level));
-			this->_tmp_map_access_level[mac] = access_level;
-		} catch (std::exception &e) {}
+		str_json += line;
 	}
+	f_js_array_access = json_tokener_parse(str_json.c_str());
+	if (!f_js_array_access || json_object_get_type(f_js_array_access) != json_type_array)
+		return false;
+	for (int i = 0, size = json_object_array_length(f_js_array_access); i < size; i++){
+		struct json_object	*js_obj_access = json_object_array_get_idx(f_js_array_access, i);
+		struct json_object	*js_obj_mac;
+		struct json_object	*js_obj_access_group;
+		struct json_object	*js_obj_name;
+		struct json_object	*js_obj_active_status;
+		t_accessLevel 		access_level;
+		std::string 		str_access_group;
+
+		if (!js_obj_access)
+			continue;
+
+		js_obj_mac = json_object_object_get(js_obj_access, "AccessMAC");
+		js_obj_access_group = json_object_object_get(js_obj_access, "access_group");
+		js_obj_name = json_object_object_get(js_obj_access, "names");
+		js_obj_active_status = json_object_object_get(js_obj_access, "ActivStatus");
+		if (json_object_get_type(js_obj_mac) != json_type_string ||
+				json_object_get_type(js_obj_access_group) != json_type_string ||
+				json_object_get_type(js_obj_name) != json_type_string ||
+				json_object_get_type(js_obj_active_status) != json_type_string ||
+				json_object_get_string(js_obj_active_status) == "1")
+			continue;
+		str_access_group = json_object_get_string(js_obj_access_group);
+		if (!str_access_group.size())
+			continue;
+		access_level.pattern = static_cast<eAccessPattern>(str_access_group[0]);
+		access_level.group = str_access_group.size() > 1 ? str_access_group[1] - '0' : 0;
+		access_level.name = json_object_get_string(js_obj_name);
+		this->_tmp_map_access_level[json_object_get_string(js_obj_mac)] = access_level;
+	}
+	json_object_put(f_js_array_access);
 	if (this->_tmp_map_access_level.size())
 		return true;
 	return false;
 }
 
 void 			AccessController::_rewrite_access_list() {
-	std::stringstream ss;
+	struct json_object 	*f_js_array_access;
 
-	for (auto item : this->_map_access_level)
-		ss << item.first << " " << item.second << "\n";
+	f_js_array_access = json_object_new_array();
+	for (auto item : this->_map_access_level) {
+		std::string			mac = item.first;
+		t_accessLevel		access_level = item.second;
+		struct json_object	*new_js_obj = json_object_new_object();
+		std::string			access_group = "..";
+
+		access_group[0] = static_cast<char>(access_level.pattern);
+		access_group[1] = static_cast<char>(access_level.group) + '0';
+		json_object_object_add(new_js_obj, "AccessMAC", json_object_new_string(mac.c_str()));
+		json_object_object_add(new_js_obj, "access_group", json_object_new_string(access_group.c_str()));
+		json_object_object_add(new_js_obj, "names", json_object_new_string(access_level.name.c_str()));
+		json_object_object_add(new_js_obj, "ActivStatus", json_object_new_string("0"));
+		json_object_array_add(f_js_array_access, new_js_obj);
+	}
 	std::ofstream	file(Constant::Files::path_access_list);
 
-	file << ss.str();
+	file << json_object_get_string(f_js_array_access);
+	json_object_put(f_js_array_access);
 }
 
 
@@ -123,20 +175,22 @@ void 			AccessController::_rewrite_access_list() {
 
 // Makers:
 
-void 		AccessController::_makeLimited(std::string mac) {
-	std::stringstream ss_script;
+void 		AccessController::_makeLimited(std::string mac, int group) {
+	std::stringstream 					ss_script;
+	std::map<std::string, std::string> 	info_map = get_dev_info_by_mac(mac);
 
 	if (!mac.size())
 		return;
 	std::cerr << mac << " _makeLimited\n";
 	// // del from lan
-	for (int i = 0, size = mac.size(); i < size; i++)
-		mac[i] = std::toupper(mac[i]);
-	ss_script << Constant::ScriptExec::script_path << "block.sh " << mac;
+	// for (int i = 0, size = mac.size(); i < size; i++)
+	// 	mac[i] = std::toupper(mac[i]);
+	// ss_script << Constant::ScriptExec::script_path << "unblock.sh " << mac;
+	ss_script << "/root/delfrom_lan.sh " << info_map["ip"];
 	ScriptExecutor::execute(1, ss_script.str().c_str());
 }
 
-void 		AccessController::_makeBlocked(std::string mac) {
+void 		AccessController::_makeBlocked(std::string mac, int group) {
 	// std::stringstream ss_script;
 	//
 	// if (!mac.size())
@@ -158,7 +212,7 @@ void 		AccessController::_makeBlocked(std::string mac) {
 	// }
 }
 
-void 		AccessController::_makeGuest(std::string mac) {
+void 		AccessController::_makeGuest(std::string mac, int group) {
 	// std::stringstream ss_script;
 	//
 	// if (!mac.size())
@@ -182,20 +236,23 @@ void 		AccessController::_makeGuest(std::string mac) {
 	// }
 }
 
-void 		AccessController::_makeGeneral(std::string mac) {
-	std::stringstream ss_script;
+void 		AccessController::_makeGeneral(std::string mac, int group) {
+	std::stringstream 					ss_script;
+	std::map<std::string, std::string> 	info_map = get_dev_info_by_mac(mac);
 
 	if (!mac.size())
 		return;
-	std::cerr << mac << " _makeLimited\n";
+	std::cerr << mac << " _makeGeneral\n";
 	// // del from lan
-	for (int i = 0, size = mac.size(); i < size; i++)
-		mac[i] = std::toupper(mac[i]);
-	ss_script << Constant::ScriptExec::script_path << "unblock.sh " << mac;
+	// for (int i = 0, size = mac.size(); i < size; i++)
+	// 	mac[i] = std::toupper(mac[i]);
+	// ss_script << Constant::ScriptExec::script_path << "unblock.sh " << mac;
+	ss_script << "/root/addto_lan.sh " << info_map["ip"];
+	std::cerr << ss_script.str() << "\n";
 	ScriptExecutor::execute(1, ss_script.str().c_str());
 }
 
-void 		AccessController::_makeSmart(std::string mac) {
+void 		AccessController::_makeSmart(std::string mac, int group) {
 	// std::stringstream ss_script;
 	//
 	// if (!mac.size())

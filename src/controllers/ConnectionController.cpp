@@ -130,7 +130,7 @@ void 		ConnectionController::_handl_connection() {
 		return ;
 	std::lock_guard<std::mutex>						lock_access_controller(this->_access_controller.self_mutex);
 	std::vector<EventConnect>								list_for_refresh;
-	std::map<std::string /*mac*/, eAccessLevel> 	&map_access_level = this->_access_controller.get_map_access_level();
+	std::map<std::string /*mac*/, s_accessLevel> 	&map_access_level = this->_access_controller.get_map_access_level();
 
 	for (EventConnect &event : this->_list_events) {
 		if (!map_access_level.count(event.mac)) {

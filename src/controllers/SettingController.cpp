@@ -177,29 +177,19 @@ bool        SettingController::is_setting_chenge() {
     // static Timer    t;
 	if (wm == eWorkMod::wm_client)
 		this->_list_new_setting.clear();
-    if (this->_list_new_setting.size()) {
+    else if (this->_list_new_setting.size()) {
         std::cerr << "List new setting alredy full\n";
         return true;
     }
+	if (this->_check_variable_file_setting())
+		return true;
     if (wm == eWorkMod::wm_server) {
-	    if (this->_check_variable_file_setting()) {
-	        return true;
-	    } else {
-			this->_delete_variable_file();
-			// std::fstream 	file(Constant::Files::path_setting_scripts);
-			// std::string 	script = "rm " + Constant::Files::path_setting_scripts;
-			//
-			// if (file.is_open())
-			// 	system(script.c_str());
-		}
+		this->_delete_variable_file();
         this->_cloud_controller.get_setting_from_cloud();
         if (this->_check_variable_file_setting())
             return true;
         else
             this->_delete_variable_file();
-    }
-    else if (this->_check_variable_file_setting()) {
-        return true;
     }
     return false;
 }
@@ -247,12 +237,11 @@ bool        SettingController::_check_variable_file_setting() {
 // }
 
 int         SettingController::_approve_new_setting() {
-    std::vector<std::string>    list_geted_setting;
+    struct json_object    		*f_js_geted_setting;
     std::fstream                file_var;
     std::string                 str_content_from_file;
     std::string                 line;
     eWorkMod                    work_mod = this->_status_controller.getWorkMod();
-    int                         size;
 
     this->_list_new_setting.clear();
     file_var.open(Constant::Files::path_variable_setting);
@@ -262,28 +251,23 @@ int         SettingController::_approve_new_setting() {
         str_content_from_file += line + "\n";
     }
     file_var.close();
-    list_geted_setting = Parser::pars_cloud_answer(str_content_from_file);
-    size = list_geted_setting.size();
-    for (Setting setting : this->_list_setting) {
-        int i = 0;
+    f_js_geted_setting = json_tokener_parse(str_content_from_file.c_str());
+    json_object_object_foreach (f_js_geted_setting, key, value) {
+		Setting 	new_setting;
+		bool 		is_new = true;
 
-        while (i < size) {
-            if (list_geted_setting[i] == setting.get_string()) {
-                list_geted_setting.erase(list_geted_setting.begin() + i);
-                size = list_geted_setting.size();
-                continue;
-            }
-            i++;
-        }
-        if (!size) {
-            if (work_mod == eWorkMod::wm_server)
-                return -1;
-            return 0;
-        }
+		new_setting.option = key;
+		if (json_object_get_type(value) != json_type_string)
+			continue;
+		new_setting.value = json_object_get_string(value);
+		for (Setting setting : this->_list_new_setting) {
+			if (setting.option == new_setting.option && new_setting.value == new_setting.value)
+				is_new = false;
+		}
+		if (is_new)
+			this->_list_new_setting.push_back(new_setting);
     }
-    for (std::string str : list_geted_setting) {
-        this->_list_new_setting.push_back(Setting(str));
-    }
+	json_object_put(f_js_geted_setting);
     return this->_list_new_setting.size();
 }
 

@@ -25,7 +25,7 @@ std::map<std::string /*type*/, std::string /*value*/>	get_dev_info_by_mac(std::s
 	std::string 		info;
 	std::stringstream	ss;
 
-	info = ScriptExecutor::getOutput::execute(2, script.c_str(), mac);
+	info = ScriptExecutor::getOutput::execute(2, script.c_str(), mac.c_str());
 	ss << info;
 	ss >> info_map["ip"];
 	ss >> info_map["nick"];
@@ -57,8 +57,8 @@ int main(int argc, char const *argv[])
 
 
 	FlagsHendler f = FlagsHendler(argc, argv, host, port, mod);
-	std::thread 	thread_notification(std::ref(_connection_controller));
-	thread_notification.detach();
+	std::thread 	thread_connection(std::ref(_connection_controller));
+	thread_connection.detach();
 	// sleep(1);
 //////////////////////
 	if (mod == 0)
@@ -67,7 +67,6 @@ int main(int argc, char const *argv[])
 		Client();
 //////////////////////
 	while (1) {
-		std::cerr << "hmmmmmmmmmmmmmmmmmmmmmmm\n";
 		StatusController::getInstance().choiceModWork();
 	}
 	return 0;

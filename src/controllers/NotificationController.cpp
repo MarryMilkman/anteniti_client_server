@@ -122,7 +122,7 @@ void 		NotificationController::_consistency_check_of_events() {
 		}
 		i++;
 	}
-	if (need_reload_list && !this->_list_connected_devices.size())
+	if (need_reload_list)
 		this->_list_connected_devices = fresh_list_connected_devices;
 }
 
