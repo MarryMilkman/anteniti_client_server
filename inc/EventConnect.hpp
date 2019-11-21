@@ -12,12 +12,15 @@ public:
 	EventConnect	&operator=(EventConnect const & ref);
 
 	bool 		conn;
+	bool		is_self;
 	bool 		is_new;
 	std::string nick;
 	std::string	mac;
 	std::string iface;
+	std::string	ip;
 	time_t 		event_time;
 
+	void 		refresh_nick_ip();
 	std::string get_str() const;
 };
 

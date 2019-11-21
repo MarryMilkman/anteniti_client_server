@@ -7,22 +7,27 @@ EventConnect::EventConnect() {
 
 EventConnect::EventConnect(std::string str_event) {
 	{
+		// costil for client event (get by tcp_ip)
 		std::vector<std::string> 	list_str_param = Parser::custom_split(str_event, " ");
 
 		if (list_str_param.size() == 6) {
 			this->conn = list_str_param[0] == "1" ? true : false;
 			this->mac = list_str_param[1];
 			this->nick = list_str_param[2];
-			this->iface = list_str_param[3];
+			this->ip = list_str_param[3];
+			this->iface = list_str_param[4];
 			try {
-				this->event_time = std::stoi(list_str_param[4]);
+				this->event_time = std::stoi(list_str_param[5]);
 			} catch (std::exception & e) {
 				this->event_time = 0;
 			}
-			this->is_new = list_str_param[5] == "1" ? true : false;
+			this->is_new = list_str_param[6] == "1" ? true : false;
+			this->is_self = false;
 			return ;
 		}
 	}
+	this->is_self = true;
+	this->is_new = false;
 
 	std::stringstream 	pars_ss(str_event);
 	std::string 		word;
@@ -35,12 +40,8 @@ EventConnect::EventConnect(std::string str_event) {
 	try {
 		this->event_time = std::stoi(word);
 	} catch (std::exception & e) {}
-	ConnectedDeviceInfo device;
+	this->refresh_nick_ip();
 
-	device._mac = this->mac;
-	device.set_nick_ip();
-	this->nick = device._nick;
-	this->is_new = false;
 }
 
 EventConnect::~EventConnect() {}
@@ -51,18 +52,29 @@ EventConnect::EventConnect(EventConnect const & ref) {
 
 EventConnect	&EventConnect::operator=(EventConnect const & ref) {
 	this->conn = ref.conn;
+	this->is_new = ref.is_new;
+	this->is_self = ref.is_self;
 	this->mac = ref.mac;
+	this->ip = ref.ip;
+	this->nick = ref.nick;
 	this->iface = ref.iface;
 	this->event_time = ref.event_time;
-	this->nick = ref.nick;
-	this->is_new = ref.is_new;
 	return *this;
+}
+
+void 			EventConnect::refresh_nick_ip() {
+	std::map<std::string, std::string> info_map = get_dev_info_by_mac(this->mac);
+
+	this->nick = info_map["nick"];
+	this->ip = info_map["ip"];
+	if (this->nick.empty())
+		this->nick = "unknown";
 }
 
 std::string 	EventConnect::get_str() const {
 	std::stringstream ss;
 
-	ss << this->conn << " " << this->mac << " " << this->nick << " "
+	ss << this->conn << " " << this->mac << " " << this->nick << " " << this->ip << " "
 		<< this->iface << " " << this->event_time << " " << this->is_new << "\n";
 	return ss.str();
 }

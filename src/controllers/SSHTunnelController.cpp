@@ -42,7 +42,7 @@ std::map<std::string, std::string>	SSHTunnelController::get_instruction() {
 
 	this->_data_from_channel = "";
 	if (!this->_check_connection()) {
-		std::cerr << "No connect...\n";
+		// std::cerr << "No connect...\n";
 		throw std::exception();
 	}
 	if (this->_try_read_from_channel()) {
@@ -176,7 +176,7 @@ bool 		SSHTunnelController::_check_connection() {
 		std::cerr << "SSHTunnelController: _remote_listenport: " << this->_remote_listenport << "\n";
 	}
 	if (!this->_channel) {
-		std::cerr << "channel not init\n";
+		// std::cerr << "channel not init\n";
 
 		if (!this->_refresh_channal())
 			return false;
@@ -279,7 +279,7 @@ bool 	SSHTunnelController::_refresh_channal() {
 
 
 void 		SSHTunnelController::_write_setting_to_variable_file(std::string setting_str) {
-	std::ofstream 	file(Constant::Files::path_variable_setting);
+	std::ofstream 	file(Constant::Files::variable_setting);
 
 	file << setting_str;
 }

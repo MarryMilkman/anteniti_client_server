@@ -3,6 +3,7 @@
 #include "Timer.hpp"
 #include "TCP_IP_Worker.hpp"
 #include "Parser.hpp"
+#include "ScriptExecutor.hpp"
 
 ConnectionController::ConnectionController() :
 	_status_controller(StatusController::getInstance()),
@@ -34,27 +35,44 @@ void 			ConnectionController::operator()() {
 		else if (this->_status_controller.getWorkMod() == eWorkMod::wm_client){
 			this->_client_behavior();
 		}
+		for (int i = 0, size = this->_list_events.size(); i < size;) {
+			EventConnect &event = this->_list_events[i];
+
+			if (!event.conn && event.iface == "e") {
+				std::string		scripts_for_drop_lease = "/root/drop_lease_by_mac.sh " + event.mac;
+
+				ScriptExecutor::execute(1, scripts_for_drop_lease.c_str());
+				this->_list_events.erase(this->_list_events.begin() + i);
+				size = this->_list_events.size();
+				continue;
+			}
+			i++;
+		}
 	}
 }
 
 
 void		ConnectionController::_server_behavior() {
+	std::vector<EventConnect>	list_event_whith_lease;
+
 	this->_tracking_self_events();
 
 	this->_listen_sattelites_events(1);
-	this->_handl_connection();
-	this->_notification_controller.handle_events(this->_list_events);
+	list_event_whith_lease = this->_handl_connection();
+	this->_notification_controller.handle_events(list_event_whith_lease);
+
 }
 
 void		ConnectionController::_client_behavior() {
-	static Timer 	timer;
+	static Timer 				timer;
+	std::vector<EventConnect>	list_event_whith_lease;
 
 	if (!timer.one_time_in(1))
 		return ;
 	this->_tracking_self_events();
-	this->_handl_connection();
-	if (this->_list_events.size())
-		this->_send_events_to_master();
+	list_event_whith_lease = this->_handl_connection();
+	if (!this->_list_events.empty())
+		this->_send_events_to_master(list_event_whith_lease);
 }
 
 
@@ -70,28 +88,34 @@ void 		ConnectionController::_listen_sattelites_events(int timeout) {
 
 	// std::cerr << "start accept message\n";
 	while (count < size && listen_tcp_ip.acceptMessage(Constant::Notification::notification_port, timeout) == 0) {
-		std::string 	message = listen_tcp_ip.get_message();
-		EventConnect 			new_event(message);
+		std::stringstream 	ss_nessage(listen_tcp_ip.get_message());
+		std::string 		line;
+
+		while (getline(ss_nessage, line)) {
+			EventConnect 	new_event(line);
+
+			new_event.is_self = false;
+			this->_list_events.push_back(new_event);
+		}
 
 		std::cerr << "EventConnect from satellite\n";
-		this->_list_events.push_back(new_event);
 		count++;
 	}
 	// std::cerr << count << " notif connect\n";
 }
 
  // for client
-void 		ConnectionController::_send_events_to_master() {
+void 		ConnectionController::_send_events_to_master(std::vector<EventConnect> list_event_whith_lease) {
 	TCP_IP_Worker 			tcp_ip;
 	RouterData 				server = this->_info_controller.get_server_info();
 	std::string 			message;
 	int 					i = 0;
 
-	if (!server.ip.size()){
+	if (server.ip.empty()){
 		std::cerr << "ERROR: this router does not know server ip\n";
 		return;
 	}
-	for (EventConnect event : this->_list_events) {
+	for (EventConnect event : list_event_whith_lease) {
 		message += event.get_str();
 	}
 	// std::cerr << server.ip << " alllllllaaah  pomogi!\n";
@@ -120,28 +144,57 @@ void 		ConnectionController::_send_events_to_master() {
 
 
 void 		ConnectionController::_tracking_self_events() {
-	this->_list_events.clear();
+	// this->_list_events.clear();
 	this->_check_watchers();
 	this->_explore_and_clean_connection_log();
+	// for (EventConnect event : this->_list_events) {
+	// 	if (event.conn)
+	// 		this->_access_controller.apply_acces_level_for_mac(event.mac);
+	// }
 }
 
-void 		ConnectionController::_handl_connection() {
-	if (!this->_list_events.size())
-		return ;
+  // returns list events which have lease
+std::vector<EventConnect> 		ConnectionController::_handl_connection() {
+	if (this->_list_events.empty())
+		return std::vector<EventConnect>();
 	std::lock_guard<std::mutex>						lock_access_controller(this->_access_controller.self_mutex);
-	std::vector<EventConnect>								list_for_refresh;
+	std::vector<EventConnect>						list_for_refresh;
+	std::vector<EventConnect>						list_event_whith_lease;
 	std::map<std::string /*mac*/, s_accessLevel> 	&map_access_level = this->_access_controller.get_map_access_level();
 
-	for (EventConnect &event : this->_list_events) {
-		if (!map_access_level.count(event.mac)) {
-			list_for_refresh.push_back(event);
-			event.is_new = true;
+	for (int i = 0, size = this->_list_events.size(); i < size;) {
+		EventConnect &event = this->_list_events[i];
+
+		if (!event.conn && event.iface == "e") {
+			list_event_whith_lease.push_back(this->_list_events[i]);
+			i++;
+			continue;
 		}
+		if (event.ip.empty()) {
+			std::cerr << "event haven't lease (" << event.mac << ")\n";
+			event.refresh_nick_ip();
+			i++;
+			continue;
+		}
+		if (event.conn && event.iface == "e") {
+			this->_info_controller.add_to_list_ethernet_mac(event.mac);
+		}
+		if (event.conn) {
+			this->_access_controller.apply_access_level_for_mac(event.mac, event.iface);
+		}
+		if (!map_access_level.count(event.mac)) {
+			event.is_new = true;
+			list_for_refresh.push_back(event);
+		}
+		list_event_whith_lease.push_back(this->_list_events[i]);
+		this->_list_events.erase(this->_list_events.begin() + i);
+		size = this->_list_events.size();
 	}
-	if (list_for_refresh.size()) {
+	if (!list_for_refresh.empty()) {
 		this->_access_controller.refresh_tmp_map_access_level(list_for_refresh);
 		this->_access_controller.apply_tmp_map_access_level();
 	}
+	return list_event_whith_lease;
 }
 
 

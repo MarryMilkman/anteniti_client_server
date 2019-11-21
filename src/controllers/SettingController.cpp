@@ -1,5 +1,5 @@
 #include "controllers/SettingController.hpp"
-
+#include "controllers/AccessController.hpp"
 
 #include "ScriptExecutor.hpp"
 #include "Timer.hpp"
@@ -14,15 +14,15 @@ SettingController::SettingController() :
 	std::string 	script = "mkdir " + Constant::Files::dir_setting;
 
     ScriptExecutor::getOutput::execute(1, script.c_str());
-	script = "touch " + Constant::Files::path_setting;
+	script = "touch " + Constant::Files::setting;
     ScriptExecutor::getOutput::execute(1, script.c_str());
-    // std::fstream    file(Constant::Files::path_setting);
+    // std::fstream    file(Constant::Files::setting);
     // std::string     version;
 	//
     // file >> version;
     // if (version.empty() || version != "Version") {
     //     file.close();
-    //     std::ofstream   n_file_setting(Constant::Files::path_setting);
+    //     std::ofstream   n_file_setting(Constant::Files::setting);
 	//
     //     n_file_setting << "Version -1\n";
     // }
@@ -69,8 +69,8 @@ eSettingStatus         SettingController::apply_setting() {
     std::vector<std::string>    list_applyed_setting;
     std::vector<std::string>    list_fail_setting;
 
-//////////
-	return eSettingStatus::sApplyOK;
+// //////////
+// 	return eSettingStatus::sApplyOK;
 ////////////
 
     std::cerr << "setting: start APPLY!\n";
@@ -94,8 +94,8 @@ eSettingStatus         SettingController::apply_setting() {
     }
     if (this->_list_unapply_setting.size())
         return eSettingStatus::sApplyFail;
-    if (this->_need_reload)
-		this->_status_controller.wifi_reload();
+    // if (this->_need_reload)
+	// 	this->_status_controller.wifi_reload();
 	this->_change_list_setting(list_applyed_setting);
 	this->_delete_variable_file();
     return eSettingStatus::sApplyOK;
@@ -136,8 +136,8 @@ eSettingStatus         SettingController::roolback_setting(std::vector<std::stri
 		this->_list_unapply_setting.clear();
         return eSettingStatus::sRoolbackFail;
     }
-	if (this->_need_reload)
-		this->_status_controller.wifi_reload();
+	// if (this->_need_reload)
+	// 	this->_status_controller.wifi_reload();
 	this->_change_list_setting(list_applyed_setting);
     this->save_setting();
     return eSettingStatus::sRoolbackOK;
@@ -147,16 +147,20 @@ eSettingStatus         SettingController::roolback_setting(std::vector<std::stri
     // delete tmp_setting_for_roolbac   k.system
 eSettingStatus         SettingController::save_setting() {
     // std::lock_guard<std::mutex> guard(SettingController::_mutex);
+	json_object 		*f_json_object = json_object_new_object();
 
     std::cerr << "setting: start SAVE!\n";
-    std::ofstream   file(Constant::Files::path_setting);
+    std::ofstream   file(Constant::Files::setting);
 
     for (Setting setting : this->_list_setting) {
-        // std::cerr << setting.get_string() << "------<\n";
-        file << setting.get_string() << "\n";
+		json_object		*js_object = json_tokener_parse(setting.value.c_str());
+
+		json_object_object_add(f_json_object, setting.option.c_str(), js_object);
     }
     // exit(0);
+	file << json_object_get_string(f_json_object);
     file.close();
+	json_object_put(f_json_object);
     this->_delete_variable_file();
     this->_list_new_setting.clear();
     this->_list_copy_setting.clear();
@@ -244,21 +248,23 @@ int         SettingController::_approve_new_setting() {
     eWorkMod                    work_mod = this->_status_controller.getWorkMod();
 
     this->_list_new_setting.clear();
-    file_var.open(Constant::Files::path_variable_setting);
+    file_var.open(Constant::Files::variable_setting);
     if (!file_var.is_open())
         return -1;
     while(getline(file_var, line)){
-        str_content_from_file += line + "\n";
+        str_content_from_file += line;
     }
     file_var.close();
     f_js_geted_setting = json_tokener_parse(str_content_from_file.c_str());
+	if (!f_js_geted_setting)
+		return -1;
     json_object_object_foreach (f_js_geted_setting, key, value) {
 		Setting 	new_setting;
 		bool 		is_new = true;
 
 		new_setting.option = key;
-		if (json_object_get_type(value) != json_type_string)
-			continue;
+		// if (json_object_get_type(value) != json_type_string)
+		// 	continue;
 		new_setting.value = json_object_get_string(value);
 		for (Setting setting : this->_list_new_setting) {
 			if (setting.option == new_setting.option && new_setting.value == new_setting.value)
@@ -275,11 +281,29 @@ int         SettingController::_approve_new_setting() {
 
 
 void    SettingController::_init_list_setting() {
-    std::fstream    file(Constant::Files::path_setting);
+    std::fstream    file(Constant::Files::setting);
+	std::stringstream ss;
     std::string     line;
+	json_object		*f_js_setting_object;
 
+	// std::cerr << file.str();
+	this->_list_setting.clear();
     while(getline(file, line))
-        this->_list_setting.push_back(Setting(line));
+        ss << line;
+	f_js_setting_object = json_tokener_parse(ss.str().c_str());
+	std::cerr << f_js_setting_object << "\n";
+	json_object_object_foreach (f_js_setting_object, key, value) {
+		Setting 	setting;
+		bool 		is_new = true;
+		const char	*c_value = json_object_get_string(value);
+
+		setting.option = key;
+		setting.value = c_value ? c_value : "";
+		// if (json_object_get_type(value) != json_type_string)
+		// 	continue;
+		this->_list_setting.push_back(setting);
+    }
+	json_object_put(f_js_setting_object);
 }
 
 int         SettingController::_change_list_setting(std::vector<std::string> new_list_setting) {
@@ -316,10 +340,10 @@ int         SettingController::_copy_old_setting() {
 }
 
 void                    SettingController::_delete_variable_file() {
-    std::fstream f(Constant::Files::path_variable_setting);
+    std::fstream f(Constant::Files::variable_setting);
 
     if (f.is_open()) {
-		std::string 	script = "rm " + Constant::Files::path_variable_setting;
+		std::string 	script = "rm " + Constant::Files::variable_setting;
         f.close();
         system(script.c_str());
     }
@@ -457,7 +481,7 @@ int     SettingController::_find_setting_end_apply(std::string setting, std::str
         // return exec_AdBlock(value);
     }
     else if (setting == "Stealth") {
-        return _execution_wrapper_Stealth(value);
+        return this->_execution_wrapper_Stealth(value);
     }
     else if (setting == "BNA") {
         // return exec_BNA(value);
@@ -465,6 +489,9 @@ int     SettingController::_find_setting_end_apply(std::string setting, std::str
     else if (setting == "CAGN") {
         // return exec_CAGN(value);
     }
+	else if (setting == "Vlan") {
+		return this->_execution_wrapper_Vlan(value);
+	}
     else
         return this->_apply_group_setting(setting, value);
     return 0;
@@ -518,6 +545,8 @@ int     SettingController::_apply_group_setting(
         return -1;
     return 0;
 }
+
+
 
 
 // MARK : - Setting execution wrappers
@@ -584,5 +613,34 @@ int 		SettingController::_execution_wrapper_Stealth(std::string value) {
 	script += "hide_wifi.sh";
 	ScriptExecutor::execute(2, script.c_str(), value_for_script.c_str());
 	this->_need_reload = true;
+	return 0;
+}
+
+int 		SettingController::_execution_wrapper_Vlan(std::string value) {
+	json_object		*f_js_array = json_tokener_parse(value.c_str());
+	int 			size;
+	int 			i;
+
+	if (!f_js_array || json_object_get_type(f_js_array) != json_type_array) {
+		json_object_put(f_js_array);
+		return -1;
+	}
+	size = json_object_array_length(f_js_array);
+	i = 0;
+	{
+		AccessController			&_access_controller = AccessController::getInstance();
+		std::lock_guard<std::mutex>	lock_access_controller(_access_controller.self_mutex);
+
+		while (i < size) {
+			json_object		*obj = json_object_array_get_idx(f_js_array, i++);
+
+			if (!obj)
+				continue;
+			Network 	new_network(obj);
+
+			_access_controller.get_map_networks()[new_network.name] = new_network;
+		}
+		_access_controller.apply_map_access_level();
+	}
 	return 0;
 }

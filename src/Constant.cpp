@@ -57,9 +57,9 @@ int 			Constant::Notification::critical_number_dis = 3;
 
 // MARK : SSHTunnel
 
-std::string		Constant::SSHTunnel::kvm_service_ip 		= "192.168.1.179";
-std::string		Constant::SSHTunnel::ssh_tunnel_username 	= "user";
-std::string		Constant::SSHTunnel::ssh_tunnel_password 	= "11111111";
+std::string		Constant::SSHTunnel::kvm_service_ip 		= "176.114.15.63";
+std::string		Constant::SSHTunnel::ssh_tunnel_username 	= "root";
+std::string		Constant::SSHTunnel::ssh_tunnel_password 	= "G6j8N7w7";
 
 // MARK : ScriptExec
 
@@ -71,16 +71,19 @@ int				Constant::TCP_IP::listen_port 				= 9742;
 
 // MARK : Files
 
-std::string 	Constant::Files::path_cloud_access_list 	= "/root/server_client_info/cloud_access_list.info";
-std::string		Constant::Files::path_access_list 			= "/root/server_client_info/access_list.info";
+std::string 	Constant::Files::cloud_access_list 			= "/root/server_client_info/cloud_access_list.json";
+std::string		Constant::Files::access_list 				= "/root/server_client_info/access_list.json";
+
 std::string		Constant::Files::path_setting_scripts 		= "/root/scripts/";
+std::string		Constant::Files::dir_setting 				= "/root/server_client_info/setting/";
+std::string		Constant::Files::variable_setting 			= "/root/server_client_info/setting/variable_setting.json";
+std::string		Constant::Files::setting 					= "/root/server_client_info/setting/setting.json";
+std::string		Constant::Files::copy_setting 				= "/root/server_client_info/setting/copy_setting.json";
 
 std::string		Constant::Files::dit_server_client_info		= "/root/server_client_info/";
-std::string 	Constant::Files::temp_sert_path 			= "/tmp/temp_sert.pem";
-std::string 	Constant::Files::cloud_tmp_file_path 		= "/tmp/cloud_tmp_file.txt";
-std::string		Constant::Files::connection_log		= "/root/server_client_info/connection_log.txt";
-std::string		Constant::Files::dir_setting 				= "/root/server_client_info/setting/";
+std::string 	Constant::Files::temp_sert		 			= "/tmp/temp_sert.pem";
+std::string 	Constant::Files::cloud_tmp_file		 		= "/tmp/cloud_tmp_file.txt";
+std::string		Constant::Files::connection_log				= "/root/server_client_info/connection_log.txt";
+std::string		Constant::Files::ethernet_list				= "/root/server_client_info/ethernet_list.txt";
+
 // std::string 	Constant::Notification::path_familiar_devices = "/root/server_client_info/familiar_devices.info";
-std::string		Constant::Files::path_variable_setting 	= "/root/server_client_info/setting/variable_setting.system";
-std::string		Constant::Files::path_setting 			= "/root/server_client_info/setting/setting.system";
-std::string		Constant::Files::path_copy_setting 		= "/root/server_client_info/setting/copy_setting.system";

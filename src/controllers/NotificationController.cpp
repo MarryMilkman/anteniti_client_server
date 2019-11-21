@@ -22,7 +22,7 @@ NotificationController::NotificationController() :
 	this->notify_guest = true;
 	this->notify_sump = true;
 
-	this->_list_connected_devices = RouterInfoController::get_list_connected_devices();
+	this->_list_connected_devices = this->_info_controller.get_list_connected_devices();
 }
 
 NotificationController::~NotificationController() {
@@ -55,7 +55,7 @@ void 		NotificationController::handle_events(std::vector<EventConnect> list_even
 		   this->_cloud_controller.notificat(Constant::Cloud::notif_disconnect_d , event.nick);
    }
 
-   this->_list_connected_devices = RouterInfoController::get_list_connected_devices();
+   // this->_list_connected_devices = this->_info_controller.get_list_connected_devices();
    // this->_list_events.clear();
 }
 
@@ -85,7 +85,7 @@ void 		NotificationController::_filter_list_events() {
 }
 
 void 		NotificationController::_consistency_check_of_events() {
-	std::vector<ConnectedDeviceInfo>	fresh_list_connected_devices = RouterInfoController::get_list_connected_devices();
+	std::vector<ConnectedDeviceInfo>	fresh_list_connected_devices = this->_info_controller.get_list_connected_devices();
 	bool 								need_reload_list = false;
 
 	for (int i = 0, size = this->_list_events.size(); i < size;) {
@@ -93,6 +93,10 @@ void 		NotificationController::_consistency_check_of_events() {
 		bool 	fresh_list_is_exist = false;
 		bool 	self_list_is_exist = false;
 
+		if (event.is_self) {
+			i++;
+			continue;
+		}
 		for (ConnectedDeviceInfo conn_dev : this->_list_connected_devices) {
 			if (conn_dev._mac == event.mac) {
 				self_list_is_exist = true;
@@ -122,7 +126,7 @@ void 		NotificationController::_consistency_check_of_events() {
 		}
 		i++;
 	}
-	if (need_reload_list)
+	if (need_reload_list || this->_list_events.size())
 		this->_list_connected_devices = fresh_list_connected_devices;
 }
 

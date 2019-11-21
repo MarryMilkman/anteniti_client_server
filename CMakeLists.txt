@@ -57,6 +57,7 @@ set(SRC
 
 		${SRC_DIRECTORY}/SSH_Worker.cpp
 		${SRC_DIRECTORY}/TCP_IP_Worker.cpp
+		${SRC_DIRECTORY}/Network.cpp
 
 		${SRC_DIRECTORY}/Encryptor.cpp
 		${SRC_DIRECTORY}/Parser.cpp

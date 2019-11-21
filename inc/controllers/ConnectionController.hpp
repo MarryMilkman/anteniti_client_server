@@ -39,10 +39,11 @@ private:
 	void							_client_behavior();
 
 	void 							_listen_sattelites_events(int timeout);
-	void 							_send_events_to_master();
+	void 							_send_events_to_master(std::vector<EventConnect> list_event_with_lease);
 
 	void 							_tracking_self_events();
-	void 							_handl_connection();
+		// returns list events which have lease
+	std::vector<EventConnect>		_handl_connection();
 	void 							_explore_and_clean_connection_log();
 
 

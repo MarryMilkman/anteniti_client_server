@@ -50,7 +50,6 @@ public:
 	class Cloud {
 	public:
 		static std::string	apikey;
-		static std::string	temp_sert_path;
 		static std::string	ssl_sert_url;
 		static std::string	cloud_url;
 		static std::string	sertificate_file_path;
@@ -81,19 +80,21 @@ public:
 	};
 	class Files {
 	public:
-		static std::string			path_cloud_access_list;
-		static std::string			path_access_list;
+		static std::string			cloud_access_list;
+		static std::string			access_list;
+
 		static std::string			path_setting_scripts;
+		static std::string			dir_setting;
+		static std::string			setting;
+		static std::string			copy_setting;
+		static std::string			variable_setting;
 
 		static std::string			dit_server_client_info;
-		static std::string 			temp_sert_path;
-		static std::string 			cloud_tmp_file_path;
+		static std::string 			temp_sert;
+		static std::string 			cloud_tmp_file;
 		static std::string			connection_log;
-		static std::string			dir_setting;
+		static std::string			ethernet_list;
 		// static std::string 		ation::path_familiar_devices;
-		static std::string			path_variable_setting;
-		static std::string			path_setting;
-		static std::string			path_copy_setting;
 	};
 
 

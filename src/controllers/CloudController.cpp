@@ -55,11 +55,9 @@ void            CloudController::get_setting_from_cloud() {
         return ;
     }
 	std::cerr << this->_response << "\n";
-    std::ofstream               f_new_setting(Constant::Files::path_variable_setting);
-    std::vector<std::string>    list_new_setting = Parser::pars_cloud_answer(this->_response);
+    std::ofstream               f_new_setting(Constant::Files::variable_setting);
 
-    for (std::string setting : list_new_setting)
-        f_new_setting << setting << "\n";
+    f_new_setting << this->_response;
     f_new_setting.close();
 }
 
@@ -76,7 +74,7 @@ void            CloudController::get_blocklist_from_cloud() {
         std::cerr << "Fail get_setting_from_cloud\n";
         return ;
     }
-    std::ofstream               f_new_blocklist(Constant::Files::path_cloud_access_list);
+    std::ofstream               f_new_blocklist(Constant::Files::cloud_access_list);
 
     f_new_blocklist << this->_response;
     f_new_blocklist.close();

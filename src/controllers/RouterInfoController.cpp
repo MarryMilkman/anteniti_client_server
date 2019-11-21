@@ -6,6 +6,14 @@
 #include "Parser.hpp"
 
 RouterInfoController::RouterInfoController() {
+	std::string	script = "touch " + Constant::Files::ethernet_list;
+
+    ScriptExecutor::execute(1, script.c_str());
+	std::fstream	file_ethernet_list(Constant::Files::ethernet_list);
+	std::string 	mac;
+
+	while (getline(file_ethernet_list, mac))
+		this->_list_ethernet_mac.push_back(mac);
 }
 
 RouterInfoController::~RouterInfoController() {}
@@ -150,6 +158,18 @@ struct json_object	*RouterInfoController::get_router_info_json() {
 	return dev.get_json_info();
 }
 
+std::vector<std::string>	&RouterInfoController::get_list_ethernet_mac() {
+	return this->_list_ethernet_mac;
+}
+
+void 			RouterInfoController::add_to_list_ethernet_mac(std::string mac) {
+	std::lock_guard<std::mutex> lg(this->_mutex);
+	std::fstream 	file_ethernet_list(Constant::Files::ethernet_list);
+
+	file_ethernet_list << mac << "\n";
+	this->_list_ethernet_mac.push_back(mac);
+}
+
 
 bool 			RouterInfoController::is_sn_from_mesh(std::string serial_number) {
 	if (this->_self_info.serial_number == serial_number)
@@ -185,6 +205,7 @@ std::vector<ConnectedDeviceInfo>	RouterInfoController::get_list_connected_device
 	std::string 						script_for_conn_devices = Constant::ScriptExec::script_path + "station_dump.sh";
 	std::vector<std::string>			type802_segments;
 
+
 	connect_devices_info_str = ScriptExecutor::getOutput::execute(1, script_for_conn_devices.c_str());
 	type802_segments = Parser::custom_split(connect_devices_info_str, "Stations on ");
 	for (std::string stations : type802_segments) {
@@ -212,6 +233,7 @@ std::vector<ConnectedDeviceInfo>	RouterInfoController::get_list_connected_device
 
 			ss_station >> connectDevice._mac;
 			connectDevice._type802 = type802;
+			connectDevice._typeConn = "WiFi";
 			while (getline(ss_station, line)) {
 				std::vector<std::string>	params_sigments = Parser::custom_split(line, ":");
 
@@ -239,11 +261,61 @@ std::vector<ConnectedDeviceInfo>	RouterInfoController::get_list_connected_device
 			r_list.push_back(connectDevice);
 		}
 	}
+
+	// ethernet connection:
+	this->_check_ethernet_mac();
+	for (std::string mac : this->_list_ethernet_mac) {
+		std::map<std::string /*type*/, std::string /*value*/>	info_map;
+		ConnectedDeviceInfo		connectDevice;
+
+		info_map = get_dev_info_by_mac(mac);
+		connectDevice._mac = mac;
+		connectDevice._ip = info_map["ip"];
+		connectDevice._nick = info_map["nick"];
+		connectDevice._typeConn = "ethernet";
+		r_list.push_back(connectDevice);
+	}
     return r_list;
 }
 
 
+void 		RouterInfoController::_check_ethernet_mac() {
+	std::lock_guard<std::mutex> 		lg(this->_mutex_ethernet_mac);
+	std::string 						script_for_ping = Constant::ScriptExec::script_path + "pingcheck.sh 1 ";
+	bool								need_rewrite_file_ethernet_list = false;
 
+	for (int i = 0, size = this->_list_ethernet_mac.size(); i < size;) {
+		std::map<std::string /*type*/, std::string /*value*/>	info_map;
+		std::string 			mac = this->_list_ethernet_mac[i];
+		std::string 			answer_ping;
+		int 					count_try = 0;
+
+		info_map = get_dev_info_by_mac(mac);
+		while (count_try < 4) {
+			answer_ping = ScriptExecutor::getOutput::execute(2, script_for_ping.c_str(), info_map["ip"].c_str());
+			if (answer_ping != "0\n")
+				break;
+			count_try++;
+		}
+		if (answer_ping != "1\n") {
+			std::cerr << "delete ethernet lease + delete from file ethernet_list + erase from _list_ethernet_mac " << this->_list_ethernet_mac.size() << "\n";
+			std::ofstream	file_connection_log(Constant::Files::connection_log, std::ios::app);
+
+			file_connection_log << "0 " << mac << " e " << time(0);
+			need_rewrite_file_ethernet_list = true;
+			this->_list_ethernet_mac.erase(this->_list_ethernet_mac.begin() + i);
+			size = this->_list_ethernet_mac.size();
+			continue;
+		}
+		i++;
+	}
+	if (need_rewrite_file_ethernet_list) {
+		std::ofstream 	file_ethernet_list(Constant::Files::ethernet_list);
+
+		for (std::string mac : this->_list_ethernet_mac)
+			file_ethernet_list << mac << "\n";
+	}
+}
 
 
 

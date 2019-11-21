@@ -90,16 +90,9 @@ void 		Server::_take_on_responsibility() {
 		this->_bc_controller.send(Constant::Comunicate::server_mod_lock, 15);
 	}
 	catch (std::exception &e) {}
-	// if (this->_setting_controller.is_setting_chenge())
-	// if (this->_setting_controller.get_version() >= 0)
-	this->_refresh_blocklist_in_mesh(Constant::Files::path_access_list);
-	// this->_notification_controller.refresh_list_familiar_devices();
+	this->_refresh_blocklist_in_mesh(Constant::Files::access_list);
 	if (!this->_refresh_general_setting_in_mesh())
 		std::cerr << "Cant refresh setting in the mesh... AND WE JUST IN THE BEGININ!\n";
-		// while (!this->_refresh_general_setting_in_mesh()) {
-		// 	std::cerr << "Cant refresh setting in the mesh... AND WE JUST IN THE BEGININ!\n";
-		// 	// exit(0);
-		// }
 	std::cerr << "end take on responsibility\n";
 }
 
@@ -171,7 +164,7 @@ void 		Server::_handle_instruction(std::string instruction) {
 		this->_ssh_tunnel_controller.send_message(this->_info_controller.get_self_info().serial_number);
 	}
 	else if (instruction == Constant::Comunicate::block_list_changed) {
-		if (this->_refresh_blocklist_in_mesh(Constant::Files::path_cloud_access_list))
+		if (this->_refresh_blocklist_in_mesh(Constant::Files::cloud_access_list))
 			this->_ssh_tunnel_controller.send_message(Constant::Comunicate::blocklist_apply);
 		else
 			this->_ssh_tunnel_controller.send_message(Constant::Comunicate::blocklist_not_apply);
@@ -375,7 +368,7 @@ bool    	Server::_refresh_general_setting_in_mesh() {
 		// 	i++;
 		// }
 		list_routers = this->_info_controller.get_routers_info();
-		if (this->_send_and_notify_setting_chenge(Constant::Files::path_setting, list_routers)){
+		if (this->_send_and_notify_setting_chenge(Constant::Files::setting, list_routers)){
 			std::cerr << "setting dont send to all routers...\n";
 			// this->_refresh_setting_in_mesh();
 			return false;
@@ -407,7 +400,7 @@ bool    	Server::_refresh_general_setting_in_mesh() {
 bool 		Server::_refresh_setting_in_mesh() {
 	std::vector<RouterData> list_routers = this->_info_controller.get_routers_info();
 
-	if (this->_send_and_notify_setting_chenge(Constant::Files::path_variable_setting, list_routers)){
+	if (this->_send_and_notify_setting_chenge(Constant::Files::variable_setting, list_routers)){
 		std::cerr << "setting dont send to all routers... resend setting to routers\n";
 		// this->_refresh_setting_in_mesh();
 		return false;
@@ -546,7 +539,7 @@ int 	Server::_send_setting_to(std::string path_setting, std::vector<RouterData> 
 		ssh.login = router.login;
 		ssh.ip = router.ip;
 		ssh.pass = router.pass;
-		if (ssh.scp(path_setting, Constant::Files::path_variable_setting))
+		if (ssh.scp(path_setting, Constant::Files::variable_setting))
 			return -1;
 	}
 	return 0;

@@ -72,6 +72,7 @@ private:
 	int 				_execution_wrapper_WiFiName(std::string value);
 	int 				_execution_wrapper_WiFiPass(std::string value);
 	int   				_execution_wrapper_Stealth(std::string value);
+	int 				_execution_wrapper_Vlan(std::string value);
 
 };
 
