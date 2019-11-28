@@ -95,7 +95,7 @@ int     BroadcastController::receive(int timeout_s) {
         return -1;
     }
     if (!this->_is_cast_from_server()) {
-        this->_message = "Uncnown sender\n";
+        this->_message = "Unknown sender\n";
         return -1;
     }
     buff[num_b] = 0;

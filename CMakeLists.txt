@@ -62,7 +62,10 @@ set(SRC
 		${SRC_DIRECTORY}/Encryptor.cpp
 		${SRC_DIRECTORY}/Parser.cpp
 
-		${SRC_DIRECTORY}/Mutex.cpp
+		${SRC_DIRECTORY}/Informer.cpp
+		${SRC_DIRECTORY}/AskingEntity.cpp
+
+#		${SRC_DIRECTORY}/Mutex.cpp
 	)
 
 

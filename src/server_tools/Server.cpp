@@ -22,7 +22,7 @@ Server::Server() :
 	this->_info_controller.refresh_satellites_list();
 	// this->_get_new_key_and_notify();
 	this->_init();
-	this->_take_on_responsibility();
+	// this->_take_on_responsibility();
 	this->_startWork();
 }
 
@@ -76,6 +76,7 @@ void 		Server::_take_on_responsibility() {
 	std::ofstream 			config_file;
 	std::string 			temporary_file_path = "/tmp/my_ip";
 
+	this->_ssh_tunnel_controller.refresh_tunnel();
 	config_file.open(temporary_file_path);
 	config_file << self_info.ip;
 	config_file.close();
@@ -110,8 +111,9 @@ void	Server::_startWork() {
 
 
 	std::cerr << "Start work---------------hi--------------------------------\n";
-	if (this->_setting_controller.is_setting_chenge())
-		this->_refresh_setting_in_mesh();
+	this->_take_on_responsibility();
+	// if (this->_setting_controller.is_setting_chenge())
+		// this->_refresh_setting_in_mesh();
 	time(&this->_time_last_request);
 	while (1) {
 		time(&time_peer_request);
@@ -120,8 +122,8 @@ void	Server::_startWork() {
 			this->_ssh_tunnel_controller.send_message(this->_info_controller.get_self_info().serial_number);
 			time(&this->_time_last_request);
 		}
-		if (timer_wan.one_time_in(10) && !StatusController::isWAN()) {
-			this->_ssh_tunnel_controller.disconnect_tunnel();
+		if (timer_wan.one_time_in(2) && !StatusController::isWAN()) {
+			// this->_ssh_tunnel_controller.disconnect_tunnel();
 			return;
 		}
 		if (timer_send_serial_number.one_time_in(60))
@@ -237,21 +239,20 @@ void 		Server::_get_info_from_routers_and_send_to_cloud(std::vector<RouterData> 
 
 	json_object_object_add(f_json_for_send, "ROUTERS", json_arr_routers);
 	json_object_array_add(json_arr_routers, this->_info_controller.get_router_info_json());
-	// info += "RouterEnd" + std::to_string(i) + std::string(" ");
 	try {
 		this->_bc_controller.send(Constant::Comunicate::send_info, 10);
 		Server::_listenAnswers(list_routers, "Get information...", Constant::TCP_IP::listen_port, 2);
 	} catch (std::exception &e) {}
 	for (RouterData router : list_routers) {
 		struct json_object 		*json_from_satelites = json_tokener_parse(router.message.c_str());
-		// info += "RouterBegin" + std::to_string(++i) + " ";
-		// info += router.message;
-		// info += "RouterEnd" + std::to_string(i) + " ";
-		if (json_from_satelites)
+
+		if (json_from_satelites) {
+			RouterInfoController::adjust_json_router_info(json_from_satelites);
 			json_object_array_add(json_arr_routers, json_from_satelites);
+		}
 		// router.is_ok = true;
 		std::cerr << "Info from ip " << router.ip << ":\n";
-		std::cerr << router.message << "\n- - - - - - -\n";
+		std::cerr << json_object_get_string(json_from_satelites) << "\n- - - - - - -\n";
 	}
 	std::string 	info = json_object_get_string(f_json_for_send);
 
@@ -297,12 +298,6 @@ void Server::_listenAnswers(
 		std::string ip = listener.get_connected_ip();
 
 		std::cerr << ip << " connect ip, mess: " << message << "\n";
-		// for (int j = 0; j < 21; j++) {
-		// 	if (j > 20)
-		// 		std::cerr << "...";
-		// 	else
-		// 		std::cerr << message[j];
-		// }
 		for (RouterData &router : list_routers) {
 			if (router.ip == ip) {
 				count++;
@@ -433,7 +428,7 @@ int 		Server::_send_and_notify_setting_chenge(std::string path_to_setting, std::
 			std::cerr << e.what() << "\n";
 			continue;
 		}
-		Server::_listenAnswers(list_routers, Constant::Comunicate::setting_delivered, Constant::TCP_IP::listen_port, 2);
+		Server::_listenAnswers(list_routers, Constant::Comunicate::setting_delivered, Constant::TCP_IP::listen_port, 1);
 		for (RouterData router : list_routers)
 			if (!router.is_ok)
 				errors_list_routers.push_back(router);

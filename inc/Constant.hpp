@@ -14,6 +14,7 @@ public:
 		static std::string	block_list_changed;
 		static std::string 	blocklist_apply;
 		static std::string	blocklist_not_apply;
+		static std::string 	new_connect;
 
 		//
 		static std::string	server_mod_lock;
@@ -80,23 +81,33 @@ public:
 	};
 	class Files {
 	public:
-		static std::string			cloud_access_list;
-		static std::string			access_list;
+		static std::string	cloud_access_list;
+		static std::string	access_list;
 
-		static std::string			path_setting_scripts;
-		static std::string			dir_setting;
-		static std::string			setting;
-		static std::string			copy_setting;
-		static std::string			variable_setting;
+		static std::string	path_setting_scripts;
+		static std::string	dir_setting;
+		static std::string	setting;
+		static std::string	copy_setting;
+		static std::string	variable_setting;
 
-		static std::string			dit_server_client_info;
-		static std::string 			temp_sert;
-		static std::string 			cloud_tmp_file;
-		static std::string			connection_log;
-		static std::string			ethernet_list;
+		static std::string	dit_server_client_info;
+		static std::string	temp_sert;
+		static std::string	cloud_tmp_file;
+		static std::string	connection_log;
+		static std::string	leases_info;
+		// static std::string	ethernet_list;
 		// static std::string 		ation::path_familiar_devices;
 	};
+	class Inform {
+	public:
+		static int			bc_port;
+		static int 			answer_port;
+		static std::string	bc_addr;
 
+		static std::string 	delim;
+
+		static std::string	ask_lease_by_mac;
+	};
 
 };
 

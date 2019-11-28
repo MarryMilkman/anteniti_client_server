@@ -10,7 +10,7 @@ SSHTunnelController::SSHTunnelController() {
 	this->_sock = 0;
 	this->_remote_listenaddr = "127.0.0.1";
 	this->_remote_listenport = 1;
-	this->_initSSHTools();
+	// this->_initSSHTools();
 }
 
 SSHTunnelController::~SSHTunnelController() {
@@ -24,25 +24,16 @@ SSHTunnelController	&SSHTunnelController::getInstance() {
 	return ssh_tc;
 }
 
-// bool 			SSHTunnelController::is_tunnel_available() {
-// 	if (!this->_session)
-// 		return false;
-// 	// if (ssh2_keepalive_send(this->session, 0))
-// 		// return false;
-// 	return true;
-// }
-//
-// bool 			SSHTunnelController::make_tunnel() {
-// 	if (!this->_initSSHTools())
-// 		return false;
-// 	return true;
-// }
+bool 			SSHTunnelController::refresh_tunnel() {
+	this->disconnect_tunnel();
+	return this->_initSSHTools();
+}
 
 std::map<std::string, std::string>	SSHTunnelController::get_instruction() {
 
 	this->_data_from_channel = "";
 	if (!this->_check_connection()) {
-		// std::cerr << "No connect...\n";
+		std::cerr << "No connect...\n";
 		throw std::exception();
 	}
 	if (this->_try_read_from_channel()) {
@@ -145,6 +136,7 @@ void 	SSHTunnelController::disconnect_tunnel() {
 	}
 	if (this->_sock > 0) {
 		close(this->_sock);
+		this->_sock = 0;
 	}
 }
 
@@ -155,7 +147,10 @@ void 	SSHTunnelController::disconnect_tunnel() {
 bool 		SSHTunnelController::_check_connection() {
 	if (!this->_session) {
 		std::cerr << "sesion not init\n";
-		if (this->_initSSHTools() || !this->_session)
+
+		int 		result_init = this->_initSSHTools();
+		std::cerr << "result_init = " << result_init << "\n";
+		if (result_init || !this->_session)
 			return false;
 	}
 

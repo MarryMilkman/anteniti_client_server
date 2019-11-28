@@ -260,12 +260,15 @@ int         SettingController::_approve_new_setting() {
 		return -1;
     json_object_object_foreach (f_js_geted_setting, key, value) {
 		Setting 	new_setting;
+		const char 	*c_str = 0;
 		bool 		is_new = true;
 
 		new_setting.option = key;
-		// if (json_object_get_type(value) != json_type_string)
-		// 	continue;
-		new_setting.value = json_object_get_string(value);
+		if (json_object_get_type(value) == json_type_null)
+			continue;
+		new_setting.value = (json_object_get_string(value));
+		// if (c_str)
+		// 	 = c_str;
 		for (Setting setting : this->_list_new_setting) {
 			if (setting.option == new_setting.option && new_setting.value == new_setting.value)
 				is_new = false;
@@ -273,6 +276,7 @@ int         SettingController::_approve_new_setting() {
 		if (is_new)
 			this->_list_new_setting.push_back(new_setting);
     }
+
 	json_object_put(f_js_geted_setting);
     return this->_list_new_setting.size();
 }

@@ -1,4 +1,5 @@
 #include "controllers/info_tools/ConnectedDeviceInfo.hpp"
+#include "controllers/RouterInfoController.hpp"
 #include "ScriptExecutor.hpp"
 
 ConnectedDeviceInfo::ConnectedDeviceInfo(int i) {
@@ -80,14 +81,10 @@ std::string     ConnectedDeviceInfo::get_string_info() {
 
 
 void 			ConnectedDeviceInfo::set_nick_ip() {
-	std::string 		script = Constant::ScriptExec::script_path + "getname.sh";
-	std::string 		info;
-	std::stringstream	ss;
+	std::map<std::string, std::string>	info_map = RouterInfoController::get_dev_info_by_mac(this->_mac);
 
-	info = ScriptExecutor::getOutput::execute(2, script.c_str(), this->_mac.c_str());
-	ss << info;
-	ss >> this->_ip;
-	ss >> this->_nick;
+	this->_ip = info_map["ip"];
+	this->_nick = info_map["nick"];
 	if (!this->_nick.size())
 		this->_nick = "unknown";
 }

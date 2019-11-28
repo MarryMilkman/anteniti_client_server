@@ -1,4 +1,5 @@
 #include "controllers/AccessController.hpp"
+#include "controllers/RouterInfoController.hpp"
 #include "EventConnect.hpp"
 #include "ScriptExecutor.hpp"
 
@@ -197,11 +198,11 @@ void 			AccessController::_rewrite_access_list() {
 // Makers:
 
 void 		AccessController::_makeLimited(std::string mac, t_accessLevel access_level) {
-	std::stringstream 					ss_script;
-
-	std::map<std::string, std::string> 	info_map = get_dev_info_by_mac(mac);
 	if (!mac.size())
 		return;
+	std::stringstream 					ss_script;
+	std::map<std::string, std::string> 	info_map = RouterInfoController::get_dev_info_by_mac(mac);
+
 	std::cerr << mac << " _makeLimited\n";
 	// // del from lan
 	// for (int i = 0, size = mac.size(); i < size; i++)
@@ -243,7 +244,7 @@ void 		AccessController::_makeBlocked(std::string mac, t_accessLevel access_leve
 
 void 		AccessController::_makeGuest(std::string mac, t_accessLevel access_level) {
 	std::stringstream 					ss_script;
-	std::map<std::string, std::string> 	info_map = get_dev_info_by_mac(mac);
+	std::map<std::string, std::string> 	info_map = RouterInfoController::get_dev_info_by_mac(mac);
 
 	if (!mac.size())
 		return;
@@ -267,7 +268,7 @@ void 		AccessController::_makeGuest(std::string mac, t_accessLevel access_level)
 
 void 		AccessController::_makeMain(std::string mac, t_accessLevel access_level) {
 	std::stringstream 					ss_script;
-	std::map<std::string, std::string> 	info_map = get_dev_info_by_mac(mac);
+	std::map<std::string, std::string> 	info_map = RouterInfoController::get_dev_info_by_mac(mac);
 
 	if (!mac.size())
 		return;

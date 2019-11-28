@@ -40,7 +40,6 @@
 
 
 // std::vector<std::string>    custom_split(std::string str, std::string delim);
-std::map<std::string /*type*/, std::string /*value*/>	get_dev_info_by_mac(std::string mac);
 
 
 

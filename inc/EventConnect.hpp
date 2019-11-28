@@ -19,6 +19,7 @@ public:
 	std::string iface;
 	std::string	ip;
 	time_t 		event_time;
+	int 		nbr_check_lease;
 
 	void 		refresh_nick_ip();
 	std::string get_str() const;

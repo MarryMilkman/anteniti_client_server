@@ -9,6 +9,7 @@ std::string		Constant::Comunicate::message_delivered 	= "message_delivered";
 std::string		Constant::Comunicate::block_list_changed 	= "block_list_changed";
 std::string 	Constant::Comunicate::blocklist_apply		= "blocklist_apply";
 std::string 	Constant::Comunicate::blocklist_not_apply 	= "blocklist_not_apply";
+std::string 	Constant::Comunicate::new_connect			= "new_connect";
 
 std::string		Constant::Comunicate::server_mod_lock 		= "server_mod_lock";
 std::string		Constant::Comunicate::server_mod_free 		= "server_mod_free";
@@ -35,8 +36,8 @@ std::string	Constant::Comunicate::router_is_not_available 	= "router_is_not_avai
 
 // MARK: Broadcast
 
-std::string	Constant::Broadcast::bcc_addr 					= "192.168.99.255";
-int 		Constant::Broadcast::bcc_port 					= 9390;
+std::string	Constant::Broadcast::bcc_addr 					= "192.168.1.255";
+int 		Constant::Broadcast::bcc_port 					= 9990;
 
 // MARK: Cloud
 std::string 	Constant::Cloud::apikey 					= "11111111111111111111";
@@ -51,7 +52,7 @@ std::string 	Constant::Cloud::notif_jamming 				= "0-010";
 
 // MARK: Notification
 
-int 			Constant::Notification::notification_port 	= 9939;
+int 			Constant::Notification::notification_port 	= 9991;
 int 			Constant::Notification::critical_number_dis = 3;
 
 
@@ -67,7 +68,7 @@ std::string		Constant::ScriptExec::script_path 			= "/root/scripts/";
 
 // MARK : TCP_IP
 
-int				Constant::TCP_IP::listen_port 				= 9742;
+int				Constant::TCP_IP::listen_port 				= 9992;
 
 // MARK : Files
 
@@ -84,6 +85,17 @@ std::string		Constant::Files::dit_server_client_info		= "/root/server_client_inf
 std::string 	Constant::Files::temp_sert		 			= "/tmp/temp_sert.pem";
 std::string 	Constant::Files::cloud_tmp_file		 		= "/tmp/cloud_tmp_file.txt";
 std::string		Constant::Files::connection_log				= "/root/server_client_info/connection_log.txt";
-std::string		Constant::Files::ethernet_list				= "/root/server_client_info/ethernet_list.txt";
+std::string 	Constant::Files::leases_info				= "/root/server_client_info/leases_info.txt";
+// std::string		Constant::Files::ethernet_list				= "/root/server_client_info/ethernet_list.txt";
 
 // std::string 	Constant::Notification::path_familiar_devices = "/root/server_client_info/familiar_devices.info";
+
+// MARK : Inform
+
+int				Constant::Inform::bc_port					= 9993;
+int 			Constant::Inform::answer_port				= 9994;
+std::string 	Constant::Inform::bc_addr					= Constant::Broadcast::bcc_addr;
+
+std::string 	Constant::Inform::delim 					= "|";
+
+std::string		Constant::Inform::ask_lease_by_mac			= "ask_lease_by_mac";

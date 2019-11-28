@@ -12,25 +12,8 @@
 #include "controllers/NotificationController.hpp"
 #include "controllers/AccessController.hpp"
 #include "controllers/ConnectionController.hpp"
+#include "Informer.hpp"
 
-#include <curl/curl.h>
-
-//
-// // get nick ip by mac
-#include "ScriptExecutor.hpp"
-
-std::map<std::string /*type*/, std::string /*value*/>	get_dev_info_by_mac(std::string mac) {
-	std::map<std::string, std::string> 			info_map;
-	std::string 		script = Constant::ScriptExec::script_path + "getname.sh";
-	std::string 		info;
-	std::stringstream	ss;
-
-	info = ScriptExecutor::getOutput::execute(2, script.c_str(), mac.c_str());
-	ss << info;
-	ss >> info_map["ip"];
-	ss >> info_map["nick"];
-	return info_map;
-}
 
 
 int main(int argc, char const *argv[])
@@ -39,11 +22,7 @@ int main(int argc, char const *argv[])
 	int				port;
 	int				mod;
 
-	// if (!libssh2_init(0))
-		// std::cerr << "libssh2 dosnt init!\n";
-
-
-
+	FlagsHendler f = FlagsHendler(argc, argv, host, port, mod);
 
 	CloudController::getInstance();
 	StatusController::getInstance();
@@ -51,14 +30,16 @@ int main(int argc, char const *argv[])
 	RouterInfoController::getInstance();
 	BroadcastController::getInstance();
 	NotificationController::getInstance();
-	ConnectionController &_connection_controller = ConnectionController::getInstance();
-
+	ConnectionController 	&_connection_controller = ConnectionController::getInstance();
 	std::cerr << "init controllers end\n";
 
+	Informer				informer;
 
-	FlagsHendler f = FlagsHendler(argc, argv, host, port, mod);
 	std::thread 	thread_connection(std::ref(_connection_controller));
+	std::thread 	thread_informer(std::ref(informer));
+
 	thread_connection.detach();
+	thread_informer.detach();
 	// sleep(1);
 //////////////////////
 	if (mod == 0)

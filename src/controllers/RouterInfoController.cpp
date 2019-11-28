@@ -4,16 +4,17 @@
 #include "controllers/info_tools/ConnectedDeviceInfo.hpp"
 #include "Mutex.hpp"
 #include "Parser.hpp"
+#include "AskingEntity.hpp"
 
 RouterInfoController::RouterInfoController() {
-	std::string	script = "touch " + Constant::Files::ethernet_list;
+	// std::string	script = "touch " + Constant::Files::ethernet_list;
 
-    ScriptExecutor::execute(1, script.c_str());
-	std::fstream	file_ethernet_list(Constant::Files::ethernet_list);
-	std::string 	mac;
+    // ScriptExecutor::execute(1, script.c_str());
+	// std::fstream	file_ethernet_list(Constant::Files::ethernet_list);
+	// std::string 	mac;
 
-	while (getline(file_ethernet_list, mac))
-		this->_list_ethernet_mac.push_back(mac);
+	// while (getline(file_ethernet_list, mac))
+		// this->_list_ethernet_mac.push_back(mac);
 }
 
 RouterInfoController::~RouterInfoController() {}
@@ -73,9 +74,14 @@ void 						RouterInfoController::refresh_satellites_list() {
 		std::stringstream	ss_line(line);
 		std::string			ping;
 
-		script = Constant::ScriptExec::script_path + "pingcheck.sh";
 		ss_line >> n_router.serial_number;
 		ss_line >> n_router.ip;
+//////////////////////////////////////////////
+		if (n_router.ip.size() != 11)
+			continue;
+//////////////////////////////////////////////
+
+		script = Constant::ScriptExec::script_path + "pingcheck.sh";
 		ping = ScriptExecutor::getOutput::execute(3, script.c_str(), "1", n_router.ip.c_str());
 		try {
 			if (std::stoi(ping) > 0)
@@ -158,17 +164,13 @@ struct json_object	*RouterInfoController::get_router_info_json() {
 	return dev.get_json_info();
 }
 
-std::vector<std::string>	&RouterInfoController::get_list_ethernet_mac() {
-	return this->_list_ethernet_mac;
-}
-
-void 			RouterInfoController::add_to_list_ethernet_mac(std::string mac) {
-	std::lock_guard<std::mutex> lg(this->_mutex);
-	std::fstream 	file_ethernet_list(Constant::Files::ethernet_list);
-
-	file_ethernet_list << mac << "\n";
-	this->_list_ethernet_mac.push_back(mac);
-}
+// void 			RouterInfoController::add_to_list_ethernet_mac(std::string mac) {
+// 	std::lock_guard<std::mutex> lg(this->_mutex);
+// 	std::fstream 	file_ethernet_list(Constant::Files::ethernet_list);
+//
+// 	file_ethernet_list << mac << "\n";
+// 	this->_list_ethernet_mac.push_back(mac);
+// }
 
 
 bool 			RouterInfoController::is_sn_from_mesh(std::string serial_number) {
@@ -180,6 +182,56 @@ bool 			RouterInfoController::is_sn_from_mesh(std::string serial_number) {
 	return false;
 }
 
+
+void 			RouterInfoController::adjust_json_router_info(struct json_object *json_router_info) {
+	struct json_object	*json_arr_conn_devices = json_object_object_get(json_router_info, "DEVICE");
+	size_t 				size;
+	size_t 				i = 0;
+
+	size = json_object_array_length(json_arr_conn_devices);
+	while (i < size) {
+		struct json_object	*json_conn_device = json_object_array_get_idx(json_arr_conn_devices, i);
+		struct json_object	*json_mac_dev = json_object_object_get(json_conn_device, "MAC");
+		struct json_object	*json_ip_dev = json_object_object_get(json_conn_device, "IP");
+		struct json_object	*json_nick_dev = json_object_object_get(json_conn_device, "Nick");
+		std::string			mac = json_object_get_string(json_mac_dev);
+		std::string			ip;
+		std::string 		nick;
+
+		if (json_object_get_type(json_ip_dev) == json_type_string)
+			ip = json_object_get_string(json_ip_dev);
+		if (json_object_get_type(json_nick_dev) == json_type_string)
+			nick = json_object_get_string(json_nick_dev);
+		if (ip.empty() || nick.empty()) {
+			std::map<std::string, std::string>	map_info_dev = RouterInfoController::get_dev_info_by_mac(mac);
+
+			if (map_info_dev["ip"].empty()) {
+				AskingEntity	asking;
+
+				if (asking.ask_everyone(Constant::Inform::ask_lease_by_mac, mac, 1)) {
+					std::map<std::string, std::string> map_answer;
+
+					for (auto item : map_answer) {
+						std::stringstream ss(item.second);
+
+						ss >> map_info_dev["mac"];
+						ss >> map_info_dev["ip"];
+						ss >> map_info_dev["nick"];
+					}
+				}
+				else {
+					json_object_array_del_idx(json_arr_conn_devices, i, 1);
+					size = json_object_array_length(json_arr_conn_devices);
+					continue;
+				}
+			}
+			json_object_set_string(json_ip_dev, map_info_dev["ip"].c_str());
+			json_object_set_string(json_nick_dev, map_info_dev["nick"].c_str());
+		}
+		i++;
+	}
+
+}
 
 
 
@@ -261,14 +313,31 @@ std::vector<ConnectedDeviceInfo>	RouterInfoController::get_list_connected_device
 			r_list.push_back(connectDevice);
 		}
 	}
-
 	// ethernet connection:
-	this->_check_ethernet_mac();
-	for (std::string mac : this->_list_ethernet_mac) {
-		std::map<std::string /*type*/, std::string /*value*/>	info_map;
-		ConnectedDeviceInfo		connectDevice;
+	std::vector<std::string>	list_eth_mac = this->_get_list_eth_conn();
 
-		info_map = get_dev_info_by_mac(mac);
+	for (std::string mac : list_eth_mac) {
+		ConnectedDeviceInfo					connectDevice;
+		std::map<std::string, std::string>	info_map = RouterInfoController::get_dev_info_by_mac(mac);
+		// std::string 						script_for_ping = Constant::ScriptExec::script_path + "pingcheck.sh 1 ";
+		// std::string 						answer_ping;
+		// int 								count_try = 0;
+		//
+		//
+		// if (info_map["ip"].empty())
+		// 	continue;
+		// while (count_try < 4) {
+		// 	answer_ping = ScriptExecutor::getOutput::execute(2, script_for_ping.c_str(), info_map["ip"].c_str());
+		// 	if (answer_ping != "0\n")
+		// 	break;
+		// 	count_try++;
+		// }
+		// if (answer_ping != "1\n") {
+		// 	// std::ofstream	file_connection_log(Constant::Files::connection_log, std::ios::app);
+		// 	//
+		// 	// file_connection_log << "0 " << mac << " e " << time(0);
+		// 	continue;
+		// }
 		connectDevice._mac = mac;
 		connectDevice._ip = info_map["ip"];
 		connectDevice._nick = info_map["nick"];
@@ -278,53 +347,152 @@ std::vector<ConnectedDeviceInfo>	RouterInfoController::get_list_connected_device
     return r_list;
 }
 
+std::vector<std::string>		RouterInfoController::_get_list_eth_conn() {
+	std::vector<std::string>	r_list;
+	std::string 				script_get_eth;
+	std::string 				info;
+	std::stringstream			ss;
+	std::string					line;
 
-void 		RouterInfoController::_check_ethernet_mac() {
-	std::lock_guard<std::mutex> 		lg(this->_mutex_ethernet_mac);
-	std::string 						script_for_ping = Constant::ScriptExec::script_path + "pingcheck.sh 1 ";
-	bool								need_rewrite_file_ethernet_list = false;
+	script_get_eth = "/root/ip_neigh_dump.sh |grep eth0";
+	info = ScriptExecutor::getOutput::execute(1, script_get_eth.c_str());
+	ss << info;
+	while (getline(ss, line)) {
+		std::vector<std::string>	list_param = Parser::custom_split(line, " ");
 
-	for (int i = 0, size = this->_list_ethernet_mac.size(); i < size;) {
-		std::map<std::string /*type*/, std::string /*value*/>	info_map;
-		std::string 			mac = this->_list_ethernet_mac[i];
-		std::string 			answer_ping;
-		int 					count_try = 0;
-
-		info_map = get_dev_info_by_mac(mac);
-		while (count_try < 4) {
-			answer_ping = ScriptExecutor::getOutput::execute(2, script_for_ping.c_str(), info_map["ip"].c_str());
-			if (answer_ping != "0\n")
-				break;
-			count_try++;
-		}
-		if (answer_ping != "1\n") {
-			std::cerr << "delete ethernet lease + delete from file ethernet_list + erase from _list_ethernet_mac " << this->_list_ethernet_mac.size() << "\n";
-			std::ofstream	file_connection_log(Constant::Files::connection_log, std::ios::app);
-
-			file_connection_log << "0 " << mac << " e " << time(0);
-			need_rewrite_file_ethernet_list = true;
-			this->_list_ethernet_mac.erase(this->_list_ethernet_mac.begin() + i);
-			size = this->_list_ethernet_mac.size();
+		if (list_param.size() != 5)
 			continue;
-		}
-		i++;
+		r_list.push_back(list_param[3]);
 	}
-	if (need_rewrite_file_ethernet_list) {
-		std::ofstream 	file_ethernet_list(Constant::Files::ethernet_list);
-
-		for (std::string mac : this->_list_ethernet_mac)
-			file_ethernet_list << mac << "\n";
-	}
+	return r_list;
 }
 
 
 
 
+std::map<std::string /*type*/, std::string /*value*/>	RouterInfoController::get_dev_info_by_mac(std::string mac) {
+	std::map<std::string, std::string> 	info_map;
+	std::string 						script;
+	std::stringstream					ss;
+	std::string 						info;
+
+	script = Constant::ScriptExec::script_path + "get_nick_ip_by_lease.sh";
+	info = ScriptExecutor::getOutput::execute(2, script.c_str(), mac.c_str());
+	ss << info;
+	ss >> info_map["nick"];
+	ss >> info_map["ip"];
+	if (info_map["ip"].empty()) {
+		script = Constant::ScriptExec::script_path + "getip.sh";
+
+		info = ScriptExecutor::getOutput::execute(2, script.c_str(), mac.c_str());
+		ss << info;
+		ss >> info_map["ip"];
+	}
+	return info_map;
+}
 
 
+// std::map<std::string /*type*/, std::string /*value*/>	RouterInfoController::get_dev_info_by_mac(std::string mac) {
+// 	std::map<std::string, std::string> 			info_map;
+// 	std::string 								script_check_leases;
+// 	std::stringstream							ss;
+// 	std::string 								info;
+//
+// 	script_check_leases = "cat " + Constant::Files::leases_info + " | grep " + mac;
+// 	// std::cerr << script_check_leases << "\n";
+// 	info = ScriptExecutor::getOutput::execute(1, script_check_leases.c_str());
+// 	if (info.empty()) {
+// 		AskingEntity	asking;
+//
+// 		if (asking.ask_everyone(Constant::Inform::ask_lease_by_mac, mac, 1)) {
+// 			std::ofstream	file_leases_info(Constant::Files::leases_info, std::ios::app);
+//
+// 			for (auto item : asking.get_map_answer()) {
+// 				file_leases_info << item.second;
+// 				ss << item.second;
+// 				break;
+// 			}
+// 		}
+// 		else
+// 			return info_map;
+// 	}
+// 	ss >> info_map["mac"];
+// 	ss >> info_map["ip"];
+// 	ss >> info_map["nick"];
+// 	return info_map;
+// }
 
 
 
 
 
 //
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// void 		RouterInfoController::_check_ethernet_mac() {
+// 	std::lock_guard<std::mutex> 		lg(this->_mutex_ethernet_mac);
+// 	std::string 						script_for_ping = Constant::ScriptExec::script_path + "pingcheck.sh 1 ";
+// 	bool								need_rewrite_file_ethernet_list = false;
+//
+// 	for (int i = 0, size = this->_list_ethernet_mac.size(); i < size;) {
+// 		std::map<std::string /*type*/, std::string /*value*/>	info_map;
+// 		std::string 			mac = this->_list_ethernet_mac[i];
+// 		std::string 			answer_ping;
+// 		int 					count_try = 0;
+//
+// 		info_map = RouterInfoController::get_dev_info_by_mac(mac);
+// 		while (count_try < 4) {
+// 			answer_ping = ScriptExecutor::getOutput::execute(2, script_for_ping.c_str(), info_map["ip"].c_str());
+// 			if (answer_ping != "0\n")
+// 				break;
+// 			count_try++;
+// 		}
+// 		if (answer_ping != "1\n") {
+// 			std::cerr << "delete from file ethernet_list + erase from _list_ethernet_mac " << this->_list_ethernet_mac.size() << "\n";
+// 			std::ofstream	file_connection_log(Constant::Files::connection_log, std::ios::app);
+//
+// 			file_connection_log << "0 " << mac << " e " << time(0);
+// 			need_rewrite_file_ethernet_list = true;
+// 			this->_list_ethernet_mac.erase(this->_list_ethernet_mac.begin() + i);
+// 			size = this->_list_ethernet_mac.size();
+// 			continue;
+// 		}
+// 		i++;
+// 	}
+// 	if (need_rewrite_file_ethernet_list) {
+// 		std::ofstream 	file_ethernet_list(Constant::Files::ethernet_list);
+//
+// 		for (std::string mac : this->_list_ethernet_mac)
+// 			file_ethernet_list << mac << "\n";
+// 	}
+// }
+//
+//
+//
+// void 		RouterInfoController::_check_ethernet_mac() {
+// 	std::vector<std::string>	list_eth_mac = get_list_eth_mac_from_ip_neigh();
+//
+// 	for (std::string mac : list_eth_mac) {
+// 		std::map<std::string, std::string> info_map = RouterInfoController::get_dev_info_by_mac(mac);
+//
+// 		if (info_map["ip"].empty())
+// 			continue;
+//
+// 		if (!ping_check(info_map["ip"])) {
+// 			add_to_connection_log_disconnect(mac);
+// 			continue;
+// 		}
+// 	}
+// }

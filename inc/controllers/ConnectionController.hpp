@@ -6,6 +6,7 @@
 # include "controllers/RouterInfoController.hpp"
 # include "controllers/NotificationController.hpp"
 # include "controllers/AccessController.hpp"
+# include "controllers/BroadcastController.hpp"
 
 class EventConnect;
 
@@ -24,6 +25,7 @@ private:
 	RouterInfoController 			&_info_controller;
 	NotificationController 			&_notification_controller;
 	AccessController 				&_access_controller;
+	BroadcastController				&_bc_controller;
 
 	std::vector<EventConnect>				_list_events;
 		// Watchers process id
@@ -39,7 +41,7 @@ private:
 	void							_client_behavior();
 
 	void 							_listen_sattelites_events(int timeout);
-	void 							_send_events_to_master(std::vector<EventConnect> list_event_with_lease);
+	void 							_send_events_to_master(std::vector<EventConnect> list_events_for_notify);
 
 	void 							_tracking_self_events();
 		// returns list events which have lease

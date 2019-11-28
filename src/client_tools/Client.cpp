@@ -50,6 +50,14 @@ bool 	Client::_listenBroadcast(int timeout) {
 	this->_status_controller.server_availabilit = true;
 	if (order == Constant::Comunicate::send_info)
 		this->_sendSelfInfo();
+	else if (order == Constant::Comunicate::new_connect) {
+		std::string mac;
+		std::string iface;
+
+		ss >> mac;
+		ss >> iface;
+		this->_access_controller.apply_access_level_for_mac(mac, iface);
+	}
 	else if (order == Constant::Comunicate::server_mod_free || order == Constant::Comunicate::wan_changed)
 		this->_status_controller.server_availabilit = false;
 	// else if (order == KEY_WAS_CHANGED)
@@ -69,6 +77,7 @@ bool 	Client::_listenBroadcast(int timeout) {
 
 	// -- setting -- setting -- setting -- setting --
 	else if (order == Constant::Comunicate::setting_changed) {
+		std::cerr << "sas?\n";
 		if (!this->_setting_controller.is_setting_chenge())
 			this->_try_sendAnswer(Constant::Comunicate::setting_not_delivered, Constant::TCP_IP::listen_port, 3);
 			// this->_sendAnswer(Constant::Comunicate::setting_not_delivered, Constant::TCP_IP::listen_port);
@@ -105,7 +114,7 @@ void 			Client::_try_sendAnswer(std::string message, int port, int nbr_try) {
 	int 	count_try = 0;
 
 	while (count_try < nbr_try) {
-		if (this->_sendAnswer(message, nbr_try) == 0)
+		if (this->_sendAnswer(message, port) == 0)
 			return;
 		count_try++;
 		sleep(1);
@@ -135,7 +144,6 @@ int 			Client::_sendAnswer(std::string message, int potr) {
 		std::cerr << "ERROR: this router does not know ip server\n";
 		return -1;
 	}
-	// std::cerr << server.ip << " alllllllaaah  pomogi!\n";
 	while (tcp_ip.tcp_connect(server.ip, potr, 1)) {
 		if (i > 100)
 			break ;
