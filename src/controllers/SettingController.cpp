@@ -295,6 +295,8 @@ void    SettingController::_init_list_setting() {
     while(getline(file, line))
         ss << line;
 	f_js_setting_object = json_tokener_parse(ss.str().c_str());
+	if (!f_js_setting_object)
+		return;
 	std::cerr << f_js_setting_object << "\n";
 	json_object_object_foreach (f_js_setting_object, key, value) {
 		Setting 	setting;

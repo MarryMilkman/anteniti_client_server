@@ -52,11 +52,14 @@ bool 	Client::_listenBroadcast(int timeout) {
 		this->_sendSelfInfo();
 	else if (order == Constant::Comunicate::new_connect) {
 		std::string mac;
+		std::string ip;
 		std::string iface;
+		bool 		is_conn = true;
 
 		ss >> mac;
+		ss >> ip;
 		ss >> iface;
-		this->_access_controller.apply_access_level_for_mac(mac, iface);
+		this->_access_controller.apply_access_level_for_mac(mac, ip, is_conn);
 	}
 	else if (order == Constant::Comunicate::server_mod_free || order == Constant::Comunicate::wan_changed)
 		this->_status_controller.server_availabilit = false;

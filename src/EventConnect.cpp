@@ -68,8 +68,8 @@ void 			EventConnect::refresh_nick_ip() {
 
 	this->nick = info_map["nick"];
 	this->ip = info_map["ip"];
-	if (this->nick.empty())
-		this->nick = "unknown";
+	// if (this->nick.empty())
+	// 	this->nick = "unknown";
 }
 
 std::string 	EventConnect::get_str() const {

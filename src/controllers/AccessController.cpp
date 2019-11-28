@@ -1,11 +1,13 @@
 #include "controllers/AccessController.hpp"
-#include "controllers/RouterInfoController.hpp"
+
+#include "controllers/info_tools/ConnectedDeviceInfo.hpp"
 #include "EventConnect.hpp"
 #include "ScriptExecutor.hpp"
 
 AccessController::AccessController() :
 	_status_controller(StatusController::getInstance()),
-	_cloud_controller(CloudController::getInstance())
+	_cloud_controller(CloudController::getInstance()),
+	_info_controller(RouterInfoController::getInstance())
 {
 	if (this->_init_tmp_map_from(Constant::Files::access_list))
 		this->apply_tmp_map_access_level();
@@ -23,61 +25,64 @@ AccessController &AccessController::getInstance() {
 
 ///////////// /////////////// //////////////// //////////////// /////////////
 
-bool 			AccessController::apply_access_level_for_mac(std::string mac, std::string iface) {
+bool 			AccessController::apply_access_level_for_mac(std::string mac, std::string ip, bool is_conn) {
 	t_accessLevel	access_level = this->_map_access_level[mac];
+	std::string 	scripts_for_change_access = this->_form_scripts_access(mac, ip, is_conn);
 
-	access_level.iface = iface;
-	this->_choose_pattern_and_execute(mac, access_level);
-	this->_map_access_level[mac] = access_level;
+	ScriptExecutor::execute(1, scripts_for_change_access.c_str());
+	// access_level.iface = iface;
+	// this->_choose_pattern_and_execute(mac, access_level);
+	// this->_map_access_level[mac] = access_level;
 }
 
 bool 			AccessController::apply_map_access_level() {
-	std::string 	mac;
-	t_accessLevel 	access_level;
+	std::vector<ConnectedDeviceInfo>	list_conn_dev = this->_info_controller.get_list_connected_devices();
 
-	std::cerr << "AccessController::apply_map_access_level\n";
-	for (auto item : this->_map_access_level) {
-		mac = item.first;
-		access_level = item.second;
-		this->_choose_pattern_and_execute(mac, access_level);
+	for (ConnectedDeviceInfo device : list_conn_dev) {
+		if (this->_map_access_level.count(device._mac)) {
+			bool 			is_conn = true;
+			std::string 	scripts_for_change_access = this->_form_scripts_access(device._mac, device._ip, is_conn);
+
+			ScriptExecutor::execute(1, scripts_for_change_access.c_str());
+		}
 	}
 	return true;
 }
 
 bool 			AccessController::apply_tmp_map_access_level() {
-	std::string 	mac;
-	t_accessLevel 	access_level;
-
 	std::cerr << "AccessController::apply_tmp_map_access_level\n";
 	if (!this->_tmp_map_access_level.size())
 		return false;
-	for (auto item : this->_tmp_map_access_level) {
-		mac = item.first;
-		if (!mac.size())
-			continue;
-		access_level = item.second;
-		this->_choose_pattern_and_execute(mac, access_level);
-		this->_map_access_level[mac] = access_level;
+	std::vector<ConnectedDeviceInfo>	list_conn_dev = this->_info_controller.get_list_connected_devices();
+
+	for (ConnectedDeviceInfo device : list_conn_dev) {
+		if (this->_tmp_map_access_level.count(device._mac)) {
+			bool 			is_conn = true;
+			std::string 	scripts_for_change_access = this->_form_scripts_access(device._mac, device._ip, is_conn);
+
+			ScriptExecutor::execute(1, scripts_for_change_access.c_str());
+			this->_map_access_level[device._mac] = this->_tmp_map_access_level[device._mac];
+		}
 	}
 	this->_rewrite_access_list();
 	this->_tmp_map_access_level.clear();
 	return true;
 }
 
-void 			AccessController::_choose_pattern_and_execute(std::string mac, t_accessLevel access_level) {
-	if (!mac.size())
-		return;
-	if (access_level.name == "")
-		this->_makeLimited(mac, access_level);
-	// else if (access_level.name == eAccessPattern::al_Blocked)
-	// 	this->_makeBlocked(mac, access_level);
-	else if (access_level.name == "Guest")
-		this->_makeGuest(mac, access_level);
-	else if (access_level.name == "Main")
-		this->_makeMain(mac, access_level);
-	// else if (access_level.name == eAccessPattern::al_Smart)
-	// 	this->_makeSmart(mac, access_level);
-}
+// void 			AccessController::_choose_pattern_and_execute(std::string mac, t_accessLevel access_level) {
+// 	if (!mac.size())
+// 		return;
+// 	if (access_level.name == "")
+// 		this->_makeLimited(mac, access_level);
+// 	// else if (access_level.name == eAccessPattern::al_Blocked)
+// 	// 	this->_makeBlocked(mac, access_level);
+// 	else if (access_level.name == "Guest")
+// 		this->_makeGuest(mac, access_level);
+// 	else if (access_level.name == "Main")
+// 		this->_makeMain(mac, access_level);
+// 	// else if (access_level.name == eAccessPattern::al_Smart)
+// 	// 	this->_makeSmart(mac, access_level);
+// }
 
 bool 			AccessController::refresh_tmp_map_access_level(std::string path_to_file) {
 	std::cerr << "AccessController::refresh_tmp_map_access_level\n";
@@ -194,118 +199,142 @@ void 			AccessController::_rewrite_access_list() {
 
 
 
+std::string 			AccessController::_form_scripts_access(std::string mac, std::string ip, bool is_conn) {
+	if (mac.empty() || ip.empty())
+		return "AccessController::_form_scripts_access: echo 'no mac or ip'";
+	std::stringstream	ss_script;
+	char 				flag = is_conn ? 'A' : 'D';
+	t_accessLevel		access_level = this->_map_access_level[mac];
+	std::string			group;
 
-// Makers:
+	if (access_level.name == "Main")
+		group = "L";
+	else if (access_level.name == "Guest")
+		group = "G";
+	else if (access_level.name == "Smart")
+		group = "S";
+	else
+		return "AccessController::_form_scripts_access: no name network";
 
-void 		AccessController::_makeLimited(std::string mac, t_accessLevel access_level) {
-	if (!mac.size())
-		return;
-	std::stringstream 					ss_script;
-	std::map<std::string, std::string> 	info_map = RouterInfoController::get_dev_info_by_mac(mac);
 
-	std::cerr << mac << " _makeLimited\n";
-	// // del from lan
-	// for (int i = 0, size = mac.size(); i < size; i++)
-	// 	mac[i] = std::toupper(mac[i]);
-	// ss_script << Constant::ScriptExec::script_path << "unblock.sh " << mac;
-		// del from lan
-	ss_script = std::stringstream("");
-	ss_script << "/root/delfrom_lan.sh " << info_map["ip"];
-	std::cerr << ss_script.str() << "\n";
-	ScriptExecutor::execute(1, ss_script.str().c_str());
-		// del from guest
-	ss_script = std::stringstream("");
-	ss_script << "/root/delfrom_guest.sh " << info_map["ip"];
-	std::cerr << ss_script.str() << "\n";
-	ScriptExecutor::execute(1, ss_script.str().c_str());
+	ss_script << Constant::ScriptExec::script_path + "ebt_main1.sh";
+	ss_script << " " << mac << " " << "192.168.1.5" << " " << "192.168.1.0" << " "
+				<< group << " " << ip << " " << flag;
+	return ss_script.str();
 }
 
-void 		AccessController::_makeBlocked(std::string mac, t_accessLevel access_level) {
-	// std::stringstream ss_script;
-	//
-	// if (!mac.size())
-	// 	return;
-	std::cerr << mac << " _makeBlocked\n";
-	// // del from lan
-	// ss_script = std::stringstream("");
-	// ss_script << Constant::ScriptExec::script_path << "delfrom_lan.sh " << mac;
-	// ScriptExecutor::execute(1, ss_script.str().c_str());
-	// // del from guest
-	// ss_script = std::stringstream("");
-	// ss_script << Constant::ScriptExec::script_path << "delfrom_guest.sh " << mac;
-	// ScriptExecutor::execute(1, ss_script.str().c_str());
-	// // add to sump (blacklist)
-	// if (!this->_is_mac_from(mac, eNumWireless::nw_Sump)) {
-	// 	ss_script = std::stringstream("");
-	// 	ss_script << Constant::ScriptExec::script_path << "addto_sump.sh " << mac;
-	// 	ScriptExecutor::execute(1, ss_script.str().c_str());
-	// }
-}
 
-void 		AccessController::_makeGuest(std::string mac, t_accessLevel access_level) {
-	std::stringstream 					ss_script;
-	std::map<std::string, std::string> 	info_map = RouterInfoController::get_dev_info_by_mac(mac);
-
-	if (!mac.size())
-		return;
-	std::cerr << mac << " _makeGuest\n";
-	// // del from lan
-	// for (int i = 0, size = mac.size(); i < size; i++)
-	// 	mac[i] = std::toupper(mac[i]);
-	// ss_script << Constant::ScriptExec::script_path << "unblock.sh " << mac;
-		// del from lan
-	ss_script = std::stringstream("");
-	ss_script << "/root/delfrom_lan.sh " << info_map["ip"];
-	std::cerr << ss_script.str() << "\n";
-	ScriptExecutor::execute(1, ss_script.str().c_str());
-		//add to guest
-	ss_script = std::stringstream("");
-	ss_script << "/root/addto_guest.sh " << info_map["ip"];
-	std::cerr << ss_script.str() << "\n";
-	ScriptExecutor::execute(1, ss_script.str().c_str());
-		//rm from smart
-}
-
-void 		AccessController::_makeMain(std::string mac, t_accessLevel access_level) {
-	std::stringstream 					ss_script;
-	std::map<std::string, std::string> 	info_map = RouterInfoController::get_dev_info_by_mac(mac);
-
-	if (!mac.size())
-		return;
-	std::cerr << mac << " _makeMain\n";
-	// // del from lan
-	// for (int i = 0, size = mac.size(); i < size; i++)
-	// 	mac[i] = std::toupper(mac[i]);
-	// ss_script << Constant::ScriptExec::script_path << "unblock.sh " << mac;
-		// add to lan
-	ss_script = std::stringstream("");
-	ss_script << "/root/addto_lan.sh " << info_map["ip"];
-	std::cerr << ss_script.str() << "\n";
-	ScriptExecutor::execute(1, ss_script.str().c_str());
-		//rm from guest
-	ss_script = std::stringstream("");
-	ss_script << "/root/delfrom_guest.sh " << info_map["ip"];
-	std::cerr << ss_script.str() << "\n";
-	ScriptExecutor::execute(1, ss_script.str().c_str());
-		//rm from smart
-}
-
-void 		AccessController::_makeSmart(std::string mac, t_accessLevel access_level) {
-	// std::stringstream ss_script;
-	//
-	// if (!mac.size())
-	// 	return;
-	std::cerr << mac << " _makeSmart\n";
-	// // add to smart
-	// if (!this->_is_mac_from(mac, eNumWireless::nw_Smurt)) {
-	// 	ss_script = std::stringstream("");
-	// 	ss_script << Constant::ScriptExec::script_path << "addto_smart.sh " << mac;
-	// 	ScriptExecutor::execute(1, ss_script.str().c_str());
-	// }
-	// // add to sump (blacklist)
-	// if (!this->_is_mac_from(mac, eNumWireless::nw_Sump)) {
-	// 	ss_script = std::stringstream("");
-	// 	ss_script << Constant::ScriptExec::script_path << "addto_sump.sh " << mac;
-	// 	ScriptExecutor::execute(1, ss_script.str().c_str());
-	// }
-}
+// // Makers:
+//
+// void 		AccessController::_makeLimited(std::string mac, t_accessLevel access_level) {
+// 	if (!mac.size())
+// 		return;
+// 	std::stringstream 					ss_script;
+// 	std::map<std::string, std::string> 	info_map = RouterInfoController::get_dev_info_by_mac(mac);
+//
+// 	std::cerr << mac << " _makeLimited\n";
+// 	// // del from lan
+// 	// for (int i = 0, size = mac.size(); i < size; i++)
+// 	// 	mac[i] = std::toupper(mac[i]);
+// 	// ss_script << Constant::ScriptExec::script_path << "unblock.sh " << mac;
+// 		// del from lan
+// 	ss_script = std::stringstream("");
+// 	ss_script << "/root/delfrom_lan.sh " << info_map["ip"];
+// 	std::cerr << ss_script.str() << "\n";
+// 	ScriptExecutor::execute(1, ss_script.str().c_str());
+// 		// del from guest
+// 	ss_script = std::stringstream("");
+// 	ss_script << "/root/delfrom_guest.sh " << info_map["ip"];
+// 	std::cerr << ss_script.str() << "\n";
+// 	ScriptExecutor::execute(1, ss_script.str().c_str());
+// }
+//
+// void 		AccessController::_makeBlocked(std::string mac, t_accessLevel access_level) {
+// 	// std::stringstream ss_script;
+// 	//
+// 	// if (!mac.size())
+// 	// 	return;
+// 	std::cerr << mac << " _makeBlocked\n";
+// 	// // del from lan
+// 	// ss_script = std::stringstream("");
+// 	// ss_script << Constant::ScriptExec::script_path << "delfrom_lan.sh " << mac;
+// 	// ScriptExecutor::execute(1, ss_script.str().c_str());
+// 	// // del from guest
+// 	// ss_script = std::stringstream("");
+// 	// ss_script << Constant::ScriptExec::script_path << "delfrom_guest.sh " << mac;
+// 	// ScriptExecutor::execute(1, ss_script.str().c_str());
+// 	// // add to sump (blacklist)
+// 	// if (!this->_is_mac_from(mac, eNumWireless::nw_Sump)) {
+// 	// 	ss_script = std::stringstream("");
+// 	// 	ss_script << Constant::ScriptExec::script_path << "addto_sump.sh " << mac;
+// 	// 	ScriptExecutor::execute(1, ss_script.str().c_str());
+// 	// }
+// }
+//
+// void 		AccessController::_makeGuest(std::string mac, t_accessLevel access_level) {
+// 	std::stringstream 					ss_script;
+// 	std::map<std::string, std::string> 	info_map = RouterInfoController::get_dev_info_by_mac(mac);
+//
+// 	if (!mac.size())
+// 		return;
+// 	std::cerr << mac << " _makeGuest\n";
+// 	// // del from lan
+// 	// for (int i = 0, size = mac.size(); i < size; i++)
+// 	// 	mac[i] = std::toupper(mac[i]);
+// 	// ss_script << Constant::ScriptExec::script_path << "unblock.sh " << mac;
+// 		// del from lan
+// 	ss_script = std::stringstream("");
+// 	ss_script << "/root/delfrom_lan.sh " << info_map["ip"];
+// 	std::cerr << ss_script.str() << "\n";
+// 	ScriptExecutor::execute(1, ss_script.str().c_str());
+// 		//add to guest
+// 	ss_script = std::stringstream("");
+// 	ss_script << "/root/addto_guest.sh " << info_map["ip"];
+// 	std::cerr << ss_script.str() << "\n";
+// 	ScriptExecutor::execute(1, ss_script.str().c_str());
+// 		//rm from smart
+// }
+//
+// void 		AccessController::_makeMain(std::string mac, t_accessLevel access_level) {
+// 	std::stringstream 					ss_script;
+// 	std::map<std::string, std::string> 	info_map = RouterInfoController::get_dev_info_by_mac(mac);
+//
+// 	if (!mac.size())
+// 		return;
+// 	std::cerr << mac << " _makeMain\n";
+// 	// // del from lan
+// 	// for (int i = 0, size = mac.size(); i < size; i++)
+// 	// 	mac[i] = std::toupper(mac[i]);
+// 	// ss_script << Constant::ScriptExec::script_path << "unblock.sh " << mac;
+// 		// add to lan
+// 	ss_script = std::stringstream("");
+// 	ss_script << "/root/addto_lan.sh " << info_map["ip"];
+// 	std::cerr << ss_script.str() << "\n";
+// 	ScriptExecutor::execute(1, ss_script.str().c_str());
+// 		//rm from guest
+// 	ss_script = std::stringstream("");
+// 	ss_script << "/root/delfrom_guest.sh " << info_map["ip"];
+// 	std::cerr << ss_script.str() << "\n";
+// 	ScriptExecutor::execute(1, ss_script.str().c_str());
+// 		//rm from smart
+// }
+//
+// void 		AccessController::_makeSmart(std::string mac, t_accessLevel access_level) {
+// 	// std::stringstream ss_script;
+// 	//
+// 	// if (!mac.size())
+// 	// 	return;
+// 	std::cerr << mac << " _makeSmart\n";
+// 	// // add to smart
+// 	// if (!this->_is_mac_from(mac, eNumWireless::nw_Smurt)) {
+// 	// 	ss_script = std::stringstream("");
+// 	// 	ss_script << Constant::ScriptExec::script_path << "addto_smart.sh " << mac;
+// 	// 	ScriptExecutor::execute(1, ss_script.str().c_str());
+// 	// }
+// 	// // add to sump (blacklist)
+// 	// if (!this->_is_mac_from(mac, eNumWireless::nw_Sump)) {
+// 	// 	ss_script = std::stringstream("");
+// 	// 	ss_script << Constant::ScriptExec::script_path << "addto_sump.sh " << mac;
+// 	// 	ScriptExecutor::execute(1, ss_script.str().c_str());
+// 	// }
+// }

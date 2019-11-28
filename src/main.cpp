@@ -14,6 +14,19 @@
 #include "controllers/ConnectionController.hpp"
 #include "Informer.hpp"
 
+#include "ScriptExecutor.hpp"
+
+int 		make_ping(std::string ip) {
+	std::string	script = Constant::ScriptExec::script_path + "pingcheck.sh";
+	std::string answer_ping;
+	int			result = 0;
+
+	answer_ping = ScriptExecutor::getOutput::execute(3, script.c_str(), "1", ip.c_str());
+	try {
+		result = std::stoi(answer_ping);
+	} catch (std::exception &e) {}
+	return result;
+}
 
 
 int main(int argc, char const *argv[])

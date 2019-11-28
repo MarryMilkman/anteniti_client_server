@@ -4,15 +4,16 @@
 # include "lib.h"
 # include "controllers/StatusController.hpp"
 # include "controllers/CloudController.hpp"
+# include "controllers/RouterInfoController.hpp"
 # include "Network.hpp"
 
 enum eAccessPattern {
-	al_Limited = 'l',
+	al_Limited = 'z',
 	al_Blocked = 'b',
-	al_Guest = 'g',
-	al_Main = 'm',
+	al_Guest = 'G',
+	al_Main = 'L',
 	// al_GuestGeneral = 3,
-	al_Smart = 's'
+	al_Smart = 'S'
 };
 
 typedef struct		s_accessLevel {
@@ -46,7 +47,7 @@ public:
     ~AccessController();
     static AccessController &getInstance();
 
-	bool 		apply_access_level_for_mac(std::string mac, std::string iface);
+	bool 		apply_access_level_for_mac(std::string mac, std::string ip, bool is_conn);
 	bool 		apply_map_access_level();
 	bool		apply_tmp_map_access_level();
 	  // for refresh from some file (if cloud -> download)
@@ -65,17 +66,18 @@ private:
 
 	StatusController 							&_status_controller;
 	CloudController 							&_cloud_controller;
+	RouterInfoController						&_info_controller;
 
 	bool 				_init_tmp_map_from(std::string path_to_file);
 	void 				_rewrite_access_list();
 
-	void 				_choose_pattern_and_execute(std::string mac, t_accessLevel access_level);
+	std::string 		_form_scripts_access(std::string mac, std::string ip, bool is_conn);
 
-	void 				_makeLimited(std::string mac, t_accessLevel access_level);
-	void 				_makeBlocked(std::string mac, t_accessLevel access_level);
-	void 				_makeGuest(std::string mac, t_accessLevel access_level);
-	void 				_makeMain(std::string mac, t_accessLevel access_level);
-	void 				_makeSmart(std::string mac, t_accessLevel access_level);
+	// void 				_makeLimited(std::string mac, t_accessLevel access_level);
+	// void 				_makeBlocked(std::string mac, t_accessLevel access_level);
+	// void 				_makeGuest(std::string mac, t_accessLevel access_level);
+	// void 				_makeMain(std::string mac, t_accessLevel access_level);
+	// void 				_makeSmart(std::string mac, t_accessLevel access_level);
 
 };
 

@@ -4,6 +4,7 @@
 #include "TCP_IP_Worker.hpp"
 #include "Parser.hpp"
 #include "ScriptExecutor.hpp"
+#include "AskingEntity.hpp"
 
 ConnectionController::ConnectionController() :
 	_status_controller(StatusController::getInstance()),
@@ -170,8 +171,8 @@ std::vector<EventConnect> 		ConnectionController::_handl_connection() {
 	for (int i = 0, size = this->_list_events.size(); i < size;) {
 		EventConnect &event = this->_list_events[i];
 
-		if (wm == eWorkMod::wm_server && event.nick.empty() || event.ip.empty()) {
-			// std::cerr << "event haven't lease (" << event.mac << ")\n";
+		  // check for lease if server, in ather case for ip
+		if ((wm == eWorkMod::wm_server && event.nick.empty()) || event.ip.empty()) {
 			event.refresh_nick_ip();
 			if (event.nbr_check_lease++ > 100) {
 				event.nbr_check_lease = 0;
@@ -179,23 +180,47 @@ std::vector<EventConnect> 		ConnectionController::_handl_connection() {
 				size = this->_list_events.size();
 				continue;
 			}
+			if (event.ip.empty()) {
+				AskingEntity	asking;
+
+				if (asking.ask_everyone(Constant::Inform::ask_lease_by_mac, event.mac, 1)) {
+					std::map<std::string, std::string> map_answer = asking.get_map_answer();
+
+					for (auto item : map_answer) {
+						std::stringstream	ss(item.second);
+						std::string			mac_from_answer;
+
+						ss >> mac_from_answer;
+						if (mac_from_answer == event.mac) {
+							ss >> event.ip;
+							ss >> event.nick;
+							make_ping(event.ip);
+						}
+					}
+				}
+			}
 			i++;
 			continue;
 		}
 		if (event.conn) {
-			this->_access_controller.apply_access_level_for_mac(event.mac, event.iface);
-		}
-		if (!event.conn && event.iface == "e") {
-			std::string		scripts_for_drop_lease = "/root/drop_lease_by_mac.sh " + event.mac;
+			this->_access_controller.apply_access_level_for_mac(event.mac, event.ip, event.conn);
 
-			ScriptExecutor::execute(1, scripts_for_drop_lease.c_str());
-		}
-		if (event.conn && event.iface == "e") {
-			// this->_info_controller.add_to_list_ethernet_mac(event.mac);
-			std::stringstream	ss_message_for_broadcast;
+			if (event.iface == "e") {
+				// this->_info_controller.add_to_list_ethernet_mac(event.mac);
+				std::stringstream	ss_message_for_broadcast;
 
-			ss_message_for_broadcast << Constant::Comunicate::new_connect << " " << event.mac << " " << event.iface;
-			this->_bc_controller.send(ss_message_for_broadcast.str(), 5);
+				ss_message_for_broadcast << Constant::Comunicate::new_connect << " " << event.mac << " " << event.iface;
+				this->_bc_controller.send(ss_message_for_broadcast.str(), 5);
+			}
+		}
+		if (!event.conn) {
+			this->_access_controller.apply_access_level_for_mac(event.mac, event.ip, event.conn);
+
+			if (event.iface == "e") {
+				std::string		scripts_for_drop_lease = "/root/drop_lease_by_mac.sh " + event.mac;
+
+				ScriptExecutor::execute(1, scripts_for_drop_lease.c_str());
+			}
 		}
 		if (!map_access_level.count(event.mac)) {
 			event.is_new = true;
@@ -264,13 +289,13 @@ void 		ConnectionController::_check_watchers_general(int term_process) {
 	std::string 	script = Constant::ScriptExec::script_path + "testconn.sh";
 
 	if (this->_watcher_general <= 0 || this->_watcher_general == term_process) {
-		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan0 -a ") + script ;
+		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan0-1 -a ") + script ;
 		this->_watcher_general = this->_make_watcher(script_for_exec);
 	}
-	// if (this->_watcher_general5 <= 0 || this->_watcher_general5 == term_process) {
-	// 	std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan1 -a ") + script ;
-	// 	this->_watcher_general5 = this->_make_watcher(script_for_exec);
-	// }
+	if (this->_watcher_general5 <= 0 || this->_watcher_general5 == term_process) {
+		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan0 -a ") + script ;
+		this->_watcher_general5 = this->_make_watcher(script_for_exec);
+	}
 }
 
 // void 		ConnectionController::_check_watchers_sump(int term_process) {

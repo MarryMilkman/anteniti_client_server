@@ -40,6 +40,7 @@
 
 
 // std::vector<std::string>    custom_split(std::string str, std::string delim);
+int 		make_ping(std::string ip);
 
 
 

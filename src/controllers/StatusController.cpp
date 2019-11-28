@@ -9,6 +9,9 @@
 #include "Mutex.hpp"
 
 StatusController::StatusController() {
+	std::string		scr = "mkdir /root/server_client_info/";
+
+	ScriptExecutor::execute(1, scr.c_str());
     this->server_availabilit = false;
     this->_fresh();
 }
