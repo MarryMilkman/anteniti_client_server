@@ -201,7 +201,7 @@ void 			RouterInfoController::adjust_json_router_info(struct json_object *json_r
 		if (ip.empty() || nick.empty()) {
 			std::map<std::string, std::string>	map_info_dev = RouterInfoController::get_dev_info_by_mac(mac);
 
-			if (map_info_dev["ip"].empty()) {
+			if (map_info_dev["ip"].empty() || map_info_dev["nick"].empty()) {
 				AskingEntity	asking;
 
 				if (asking.ask_everyone(Constant::Inform::ask_lease_by_mac, mac, 1)) {
@@ -310,7 +310,7 @@ std::vector<ConnectedDeviceInfo>	RouterInfoController::get_list_connected_device
 		}
 	}
 	// ethernet connection:
-	std::vector<std::string>	list_eth_mac = this->_get_list_eth_conn();
+	std::vector<std::string>	list_eth_mac = RouterInfoController::_get_list_eth_conn();
 
 	for (std::string mac : list_eth_mac) {
 		ConnectedDeviceInfo					connectDevice;
@@ -354,7 +354,7 @@ std::map<std::string /*type*/, std::string /*value*/>	RouterInfoController::get_
 	std::stringstream					ss;
 	std::string 						info;
 
-	if (mac.empty())		
+	if (mac.empty())
 		return info_map;
 	script = Constant::ScriptExec::script_path + "get_nick_ip_by_lease.sh";
 	info = ScriptExecutor::getOutput::execute(2, script.c_str(), mac.c_str());

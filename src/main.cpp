@@ -31,6 +31,14 @@ int 		make_ping(std::string ip) {
 
 int main(int argc, char const *argv[])
 {
+	system("ebtables -F");
+	// system("ebtables -X");
+	// system("echo \"00:00:00:01:01:01\" > /var/run/hostapd-wlan0.maclist");
+	// system("echo \"00:00:00:01:01:01\" > /var/run/hostapd-wlan0-1.maclist");
+	// system("echo \"00:00:00:01:01:01\" > /var/run/hostapd-wlan0-2.maclist");
+	// system("echo \"00:00:00:01:01:01\" > /var/run/hostapd-wlan0-3.maclist");
+
+
 	std::string		host;
 	int				port;
 	int				mod;

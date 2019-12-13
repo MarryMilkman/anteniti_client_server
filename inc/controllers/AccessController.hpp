@@ -17,24 +17,17 @@ enum eAccessPattern {
 };
 
 typedef struct		s_accessLevel {
-	eAccessPattern	pattern;
-	char 			group;
-	std::string 	name;
-	std::string 	iface;
-	s_accessLevel() {
-		this->pattern = al_Limited;
-		this->group = 0;
-		this->name = "";
-		this->iface = "wlan-1";
-	}
-	~s_accessLevel() {}
-	s_accessLevel	&operator=(s_accessLevel const & ref) {
-		this->pattern = ref.pattern;
-		this->group = ref.group;
-		this->name = ref.name;
-		this->iface = ref.iface;
-		return *this;
-	}
+	// eAccessPattern				pattern;
+	// std::vector<std::string>	list_group;
+	// char 						group;
+	std::string 				name_group;
+	std::string 				old_name_group;
+	std::string 				iface;
+	bool 						need_deauth;
+
+	s_accessLevel();
+	~s_accessLevel();
+	s_accessLevel	&operator=(s_accessLevel const & ref);
 }					t_accessLevel;
 
 class EventConnect;
@@ -47,8 +40,8 @@ public:
     ~AccessController();
     static AccessController &getInstance();
 
-	bool 		apply_access_level_for_mac(std::string mac, std::string ip, bool is_conn);
-	bool 		apply_map_access_level();
+	// bool 		apply_access_level_for_mac(std::string mac, std::string ip, bool is_conn);
+	// bool 		apply_map_access_level();
 	bool		apply_tmp_map_access_level();
 	  // for refresh from some file (if cloud -> download)
 	bool		refresh_tmp_map_access_level(std::string path_to_file);
@@ -71,7 +64,19 @@ private:
 	bool 				_init_tmp_map_from(std::string path_to_file);
 	void 				_rewrite_access_list();
 
-	std::string 		_form_scripts_access(std::string mac, std::string ip, bool is_conn);
+	std::string			_form_scripts_access(
+									std::string mac,
+									std::string name_group,
+									char flag);
+
+	bool				_is_mac_in_group(std::string mac, std::string group);
+	std::string 		_get_flag_group(std::string name_group);
+
+	void 				_add_mac_to_group(std::string mac,
+										std::string group,
+										std::map<std::string /*mac*/, t_accessLevel> &map_access_level);
+	void 				_block_mac(std::string mac);
+	void 				_delete_rule_for_mac(std::string mac);
 
 	// void 				_makeLimited(std::string mac, t_accessLevel access_level);
 	// void 				_makeBlocked(std::string mac, t_accessLevel access_level);

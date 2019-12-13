@@ -14,6 +14,7 @@ include_directories (
 	./inc
 	./inc/client_tools
 	./inc/server_tools
+	./inc/entity
 	libssh2-1.8.0/include
 	json-c
 )
@@ -45,27 +46,24 @@ set(SRC
 		${SRC_DIRECTORY}/controllers/info_tools/DeviceInfo.cpp
 		${SRC_DIRECTORY}/controllers/info_tools/ConnectedDeviceInfo.cpp
 
+		${SRC_DIRECTORY}/entity/RouterData.cpp
+		${SRC_DIRECTORY}/entity/AskingEntity.cpp
+		${SRC_DIRECTORY}/entity/Timer.cpp
+		${SRC_DIRECTORY}/entity/EventConnect.cpp
+		${SRC_DIRECTORY}/entity/SSH_Worker.cpp
+		${SRC_DIRECTORY}/entity/TCP_IP_Worker.cpp
+		${SRC_DIRECTORY}/entity/Network.cpp
 
-		${SRC_DIRECTORY}/RouterData.cpp
-		${SRC_DIRECTORY}/main.cpp
-		${SRC_DIRECTORY}/Timer.cpp
-		${SRC_DIRECTORY}/EventConnect.cpp
-
+		${SRC_DIRECTORY}/Informer.cpp
 		${SRC_DIRECTORY}/ScriptExecutor.cpp
 		${SRC_DIRECTORY}/FlagsHendler.cpp
 		${SRC_DIRECTORY}/CustomException.cpp
-
-		${SRC_DIRECTORY}/SSH_Worker.cpp
-		${SRC_DIRECTORY}/TCP_IP_Worker.cpp
-		${SRC_DIRECTORY}/Network.cpp
-
 		${SRC_DIRECTORY}/Encryptor.cpp
 		${SRC_DIRECTORY}/Parser.cpp
 
-		${SRC_DIRECTORY}/Informer.cpp
-		${SRC_DIRECTORY}/AskingEntity.cpp
+		${SRC_DIRECTORY}/main.cpp
 
-#		${SRC_DIRECTORY}/Mutex.cpp
+#		${SRC_DIRECTORY}/entity/Mutex.cpp
 	)
 
 

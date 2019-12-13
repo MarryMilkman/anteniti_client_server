@@ -646,7 +646,7 @@ int 		SettingController::_execution_wrapper_Vlan(std::string value) {
 
 			_access_controller.get_map_networks()[new_network.name] = new_network;
 		}
-		_access_controller.apply_map_access_level();
+		// _access_controller.apply_map_access_level();
 	}
 	return 0;
 }

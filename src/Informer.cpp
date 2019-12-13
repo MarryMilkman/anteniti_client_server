@@ -74,6 +74,7 @@ void 		Informer::operator()() {
 			continue;
 		if (!answer_message.empty())
 			this->_send_answer(this->_get_bc_ip(), Constant::Inform::answer_port, answer_message);
+		std::cerr << "Informer: send answer: OK\n";
 	}
 }
 

@@ -1,7 +1,7 @@
-#STAG_DIR = ./../../../staging_dir/toolchain-mipsel_24kc_gcc-5.5.0_musl/
+STAG_DIR = /home/user/zborki_for_openwrt/openwrt-ad7b64e/staging_dir
 CC = gcc
 CFLAGS = -Os -Wall -Wmissing-declarations -g3 -g
-CPPFLAGS = -std=c++11 -lssh2 -lcurl
+CPPFLAGS = -std=c++11 -lssh2 -lcurl -ljson-c
 LDFLAGS  = -L$(STAG_DIR)/usr/lib -L$(STAG_DIR)/
 
 LDLIBS =
@@ -15,14 +15,15 @@ SRC_DIR	:= ./src/
 INC_DIR := ./inc/
 INC_DIR_CLIENT := ./inc/client_tools/
 INC_DIR_SERV := ./inc/server_tools/
+INC_DIR_ENTITY := ./inc/entity/
+
 
 
 # Source and object files
-SRC		:= 				main.cpp \
+SRC		:= 	main.cpp \
+			Constant.cpp \
 			server_tools/Server.cpp \
 			client_tools/Client.cpp \
-			TCP_IP_Worker.cpp \
-			SSH_Worker.cpp \
 			\
 			controllers/BroadcastController.cpp \
 			controllers/RouterInfoController.cpp \
@@ -32,16 +33,26 @@ SRC		:= 				main.cpp \
 			controllers/SettingController.cpp \
 			controllers/setting_tools/Setting.cpp \
 			controllers/CloudController.cpp \
+			controllers/NotificationController.cpp \
 			controllers/SSHTunnelController.cpp \
+			controllers/AccessController.cpp	\
+			controllers/ConnectionController.cpp	\
+			\
+			entity/TCP_IP_Worker.cpp \
+			entity/SSH_Worker.cpp \
+			entity/RouterData.cpp \
+			entity/Timer.cpp \
+			entity/AskingEntity.cpp \
+			entity/Network.cpp \
+			entity/EventConnect.cpp \
 			\
 			ScriptExecutor.cpp \
 			FlagsHendler.cpp \
 			CustomException.cpp \
-			RouterData.cpp \
-			Timer.cpp \
 			Encryptor.cpp \
 			Parser.cpp \
-			Mutex.cpp
+			Informer.cpp \
+
 
 OBJ		:= $(addprefix $(OBJ_DIR), $(SRC:.cpp=.o))
 
@@ -58,15 +69,15 @@ all: obj_dir $(NAME)
 
 # Link object files into the executable
 $(NAME): $(OBJ)
-	$(CXX) $(CPPFLAGS) $(OBJ) $(LDFLAGS) -o $(NAME) -I$(INC_DIR) -I $(INC_DIR_SERV) -I $(INC_DIR_CLIENT)
+	$(CXX) $(CPPFLAGS) $(OBJ) $(LDFLAGS) -o $(NAME) -I$(INC_DIR) -I $(INC_DIR_SERV) -I $(INC_DIR_CLIENT) -I$(STAG_DIR)/host/include/json-c -I $(INC_DIR_ENTITY)
 
 # Compile object files from source files
 $(OBJ_DIR)%.o: $(SRC_DIR)%.cpp
-	$(CXX) $(CPPFLAGS) $(LDFLAGS) -o $@ -c $<  -I $(INC_DIR) -I $(INC_DIR_SERV) -I $(INC_DIR_CLIENT)
+	$(CXX) $(CPPFLAGS) $(LDFLAGS) -o $@ -c $<  -I $(INC_DIR) -I $(INC_DIR_SERV) -I $(INC_DIR_CLIENT) -I$(STAG_DIR)/host/include/json-c -I $(INC_DIR_ENTITY)
 
 # Create a directory for object files
 obj_dir:
-	@mkdir -p $(OBJ_DIR) $(OBJ_DIR)/server_tools $(OBJ_DIR)/client_tools $(OBJ_DIR)/controllers $(OBJ_DIR)/controllers/setting_tools $(OBJ_DIR)/controllers/info_tools
+	@mkdir -p $(OBJ_DIR) $(OBJ_DIR)/server_tools $(OBJ_DIR)/client_tools $(OBJ_DIR)/controllers $(OBJ_DIR)/controllers/setting_tools $(OBJ_DIR)/controllers/info_tools $(OBJ_DIR)/entity
 
 # Delete object files
 clean:

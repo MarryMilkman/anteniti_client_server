@@ -1,0 +1,33 @@
+_init_and_execute_post!
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100     6    0     6    0     0     31      0 --:--:-- --:--:-- --:--:--    31
+Command-94:83:c4:00:fd:bb
+***DELIM***
+send_info - MESSAGE!
+send_info
+SSHTunnelController: try send_message: message_delivered
+AskingEntity broadcast send: ask_lease_by_mac|38:2c:4a:6f:bb:72
+Informer: new question: ask_lease_by_mac|38:2c:4a:6f:bb:72
+AskingEntity broadcast send: ask_lease_by_mac|50:2b:73:58:0c:e7
+Informer: new question: ask_lease_by_mac|50:2b:73:58:0c:e7
+Broadcast send: send_info
+cloud: send info
+_init_and_execute_post!
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100     6    0     6    0     0     25      0 --:--:-- --:--:-- --:--:--    26
+Command-94:83:c4:00:fd:bb
+***DELIM***
+send_info - MESSAGE!
+send_info
+SSHTunnelController: try send_message: message_delivered
+AskingEntity broadcast send: ask_lease_by_mac|38:2c:4a:6f:bb:72
+Informer: new question: ask_lease_by_mac|38:2c:4a:6f:bb:72
+AskingEntity broadcast send: ask_lease_by_mac|50:2b:73:58:0c:e7
+Informer: new question: ask_lease_by_mac|50:2b:73:58:0c:e7
+Broadcast bind send init:Segmentation fault
+root@OpenWrt:~#
+root@OpenWrt:~#
+root@OpenWrt:~#
+root@OpenWrt:~#

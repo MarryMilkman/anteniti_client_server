@@ -52,9 +52,12 @@ private:
 		// wahtcher methods
 	void 							_check_watchers();
 	void 							_check_watchers_general(int temp_process);
-	// void 							_check_watchers_sump(int temp_process);
-	// void 							_check_watchers_guest(int temp_process);
+	void 							_check_watchers_sump(int temp_process);
+	void 							_check_watchers_guest(int temp_process);
+	void 							_check_watchers_smurt(int temp_process);
 	pid_t 							_make_watcher(std::string script);
+
+	void 							_bind_ping_to_eth(std::string ip, std::string mac);
 };
 
 #endif

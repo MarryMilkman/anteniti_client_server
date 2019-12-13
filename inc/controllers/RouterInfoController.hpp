@@ -31,15 +31,15 @@ public:
 
 
 private:
-    std::mutex					_mutex;
-	std::mutex 					_mutex_ethernet_mac;
+    std::mutex						_mutex;
+	std::mutex 						_mutex_ethernet_mac;
 
-	RouterData                 	_self_info;
-	RouterData                  _server_info;
-	std::vector<RouterData>     _list_routers;
+	RouterData                 		_self_info;
+	RouterData                  	_server_info;
+	std::vector<RouterData>     	_list_routers;
 
-	void 						_check_ethernet_mac();
-	std::vector<std::string>	_get_list_eth_conn();
+	void 							_check_ethernet_mac();
+	static std::vector<std::string>	_get_list_eth_conn();
 
 };
 

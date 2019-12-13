@@ -37,19 +37,19 @@ void 			ConnectionController::operator()() {
 		else if (this->_status_controller.getWorkMod() == eWorkMod::wm_client){
 			this->_client_behavior();
 		}
-		for (int i = 0, size = this->_list_events.size(); i < size;) {
-			EventConnect &event = this->_list_events[i];
-
-			if (!event.conn && event.iface == "e") {
-				std::string		scripts_for_drop_lease = "/root/drop_lease_by_mac.sh " + event.mac;
-
-				ScriptExecutor::execute(1, scripts_for_drop_lease.c_str());
-				this->_list_events.erase(this->_list_events.begin() + i);
-				size = this->_list_events.size();
-				continue;
-			}
-			i++;
-		}
+		// for (int i = 0, size = this->_list_events.size(); i < size;) {
+		// 	EventConnect &event = this->_list_events[i];
+		//
+		// 	if (!event.conn && event.iface == "e") {
+		// 		std::string		scripts_for_drop_lease = "/root/drop_lease_by_mac.sh " + event.mac;
+		//
+		// 		ScriptExecutor::execute(1, scripts_for_drop_lease.c_str());
+		// 		this->_list_events.erase(this->_list_events.begin() + i);
+		// 		size = this->_list_events.size();
+		// 		continue;
+		// 	}
+		// 	i++;
+		// }
 	}
 }
 
@@ -161,12 +161,11 @@ void 		ConnectionController::_tracking_self_events() {
 std::vector<EventConnect> 		ConnectionController::_handl_connection() {
 	if (this->_list_events.empty())
 		return std::vector<EventConnect>();
-	std::lock_guard<std::mutex>						lock_access_controller(this->_access_controller.self_mutex);
 
 	eWorkMod										wm = this->_status_controller.getWorkMod();
 	std::vector<EventConnect>						list_for_refresh;
 	std::vector<EventConnect>						list_events_for_notify;
-	std::map<std::string /*mac*/, s_accessLevel> 	&map_access_level = this->_access_controller.get_map_access_level();
+	std::map<std::string /*mac*/, s_accessLevel> 	map_access_level = this->_access_controller.get_map_access_level();
 
 	for (int i = 0, size = this->_list_events.size(); i < size;) {
 		EventConnect &event = this->_list_events[i];
@@ -203,18 +202,22 @@ std::vector<EventConnect> 		ConnectionController::_handl_connection() {
 			continue;
 		}
 		if (event.conn) {
-			this->_access_controller.apply_access_level_for_mac(event.mac, event.ip, event.conn);
+			// this->_access_controller.apply_access_level_for_mac(event.mac, event.ip, event.conn);
 
 			if (event.iface == "e") {
 				// this->_info_controller.add_to_list_ethernet_mac(event.mac);
-				std::stringstream	ss_message_for_broadcast;
-
-				ss_message_for_broadcast << Constant::Comunicate::new_connect << " " << event.mac << " " << event.iface;
-				this->_bc_controller.send(ss_message_for_broadcast.str(), 5);
+				// std::stringstream	ss_message_for_broadcast;
+				//
+				// ss_message_for_broadcast << Constant::Comunicate::new_connect << " " << event.mac << " " << event.iface;
+				// try {
+					// this->_bc_controller.send(ss_message_for_broadcast.str(), 5);
+				// } catch (std::exception &e) {}
+				// if (wm == wm_server)
+				this->_bind_ping_to_eth(event.ip, event.mac);
 			}
 		}
 		if (!event.conn) {
-			this->_access_controller.apply_access_level_for_mac(event.mac, event.ip, event.conn);
+			// this->_access_controller.apply_access_level_for_mac(event.mac, event.ip, event.conn);
 
 			if (event.iface == "e") {
 				std::string		scripts_for_drop_lease = "/root/drop_lease_by_mac.sh " + event.mac;
@@ -232,6 +235,8 @@ std::vector<EventConnect> 		ConnectionController::_handl_connection() {
 		size = this->_list_events.size();
 	}
 	if (!list_for_refresh.empty()) {
+		std::lock_guard<std::mutex>						lock_access_controller(this->_access_controller.self_mutex);
+
 		this->_access_controller.refresh_tmp_map_access_level(list_for_refresh);
 		this->_access_controller.apply_tmp_map_access_level();
 	}
@@ -281,48 +286,65 @@ void 		ConnectionController::_check_watchers() {
 	if (term_process == 0)
 		return ;
 	this->_check_watchers_general(term_process);
-	// this->_check_watchers_sump(term_process);
-	// this->_check_watchers_guest(term_process);
+	this->_check_watchers_sump(term_process);
+	this->_check_watchers_guest(term_process);
+	this->_check_watchers_smurt(term_process);
 }
 
 void 		ConnectionController::_check_watchers_general(int term_process) {
 	std::string 	script = Constant::ScriptExec::script_path + "testconn.sh";
 
-	if (this->_watcher_general <= 0 || this->_watcher_general == term_process) {
-		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan0-1 -a ") + script ;
-		this->_watcher_general = this->_make_watcher(script_for_exec);
-	}
+	// if (this->_watcher_general <= 0 || this->_watcher_general == term_process) {
+	// 	std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan0-1 -a ") + script ;
+	// 	this->_watcher_general = this->_make_watcher(script_for_exec);
+	// }
 	if (this->_watcher_general5 <= 0 || this->_watcher_general5 == term_process) {
 		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan0 -a ") + script ;
 		this->_watcher_general5 = this->_make_watcher(script_for_exec);
 	}
 }
 
-// void 		ConnectionController::_check_watchers_sump(int term_process) {
-// 	std::string 	script = Constant::ScriptExec::script_path + "testconn.sh";
-//
-// 	if (this->_watcher_sump <= 0 || this->_watcher_sump == term_process) {
-// 		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan0-2 -a ") + script ;
-// 		this->_watcher_sump = this->_make_watcher(script_for_exec);
-// 	}
-// 	if (this->_watcher_sump5 <= 0 || this->_watcher_sump5 == term_process) {
-// 		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan1-3 -a ") + script ;
-// 		this->_watcher_sump5 = this->_make_watcher(script_for_exec);
-// 	}
-// }
-//
-// void 		ConnectionController::_check_watchers_guest(int term_process) {
-// 	std::string 	script = Constant::ScriptExec::script_path + "testconn.sh";
-//
-// 	if (this->_watcher_guest <= 0 || this->_watcher_guest == term_process) {
-// 		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan0-3 -a ") + script ;
-// 		this->_watcher_guest = this->_make_watcher(script_for_exec);
-// 	}
-// 	if (this->_watcher_guest5 <= 0 || this->_watcher_guest5 == term_process) {
-// 		std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan1-4 -a ") + script ;
-// 		this->_watcher_guest5 = this->_make_watcher(script_for_exec);
-// 	}
-// }
+void 		ConnectionController::_check_watchers_sump(int term_process) {
+	std::string 	script = Constant::ScriptExec::script_path + "testconn.sh";
+
+	// if (this->_watcher_sump <= 0 || this->_watcher_sump == term_process) {
+	// 	std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan0-3 -a ") + script ;
+	// 	this->_watcher_sump = this->_make_watcher(script_for_exec);
+	// }
+	// if (this->_watcher_sump5 <= 0 || this->_watcher_sump5 == term_process) {
+	// 	std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan1-3 -a ") + script ;
+	// 	this->_watcher_sump5 = this->_make_watcher(script_for_exec);
+	// }
+}
+
+void 		ConnectionController::_check_watchers_guest(int term_process) {
+	std::string 	script = Constant::ScriptExec::script_path + "testconn.sh";
+
+	// if (this->_watcher_guest <= 0 || this->_watcher_guest == term_process) {
+	// 	std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan0-1 -a ") + script ;
+	// 	this->_watcher_guest = this->_make_watcher(script_for_exec);
+	// }
+	// if (this->_watcher_guest5 <= 0 || this->_watcher_guest5 == term_process) {
+	// 	std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan1-4 -a ") + script ;
+	// 	this->_watcher_guest5 = this->_make_watcher(script_for_exec);
+	// }
+}
+
+void 		ConnectionController::_check_watchers_smurt(int term_process) {
+	std::string 	script = Constant::ScriptExec::script_path + "testconn.sh";
+
+	// if (this->_watcher_guest <= 0 || this->_watcher_guest == term_process) {
+	// 	std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan0-2 -a ") + script ;
+	// 	this->_watcher_guest = this->_make_watcher(script_for_exec);
+	// }
+	// if (this->_watcher_guest5 <= 0 || this->_watcher_guest5 == term_process) {
+	// 	std::string	script_for_exec = std::string("/usr/sbin/hostapd_cli -i wlan1-4 -a ") + script ;
+	// 	this->_watcher_guest5 = this->_make_watcher(script_for_exec);
+	// }
+}
+
+
+
 
 pid_t 		ConnectionController::_make_watcher(std::string script) {
 	pid_t	new_pid = fork();
@@ -347,4 +369,36 @@ pid_t 		ConnectionController::_make_watcher(std::string script) {
 		exit(0);
 	}
 	return new_pid;
+}
+
+void 		ConnectionController::_bind_ping_to_eth(std::string ip, std::string mac) {
+	std::cerr << "_bind_ping_to_eth " << ip << " : " << mac << "\n";
+	if (ip.empty() || mac.empty())
+		return ;
+	pid_t	new_pid = fork();
+	if (!new_pid) {
+		// eWorkMod		wm;
+		std::string 	path_script = Constant::ScriptExec::script_path + "pingcheck.sh";
+
+		std::cerr << path_script << " " << ip << "\n";
+		while (1) {
+			int 			count = 0;
+			std::string 	answer;
+
+			while (count < 4) {
+				answer = ScriptExecutor::getOutput::execute(3, path_script.c_str(), "4", ip.c_str());
+				if (answer != "0\n");
+					break;
+			}
+			if (answer == "0\n") {
+				std::ofstream	file_connection_log(Constant::Files::connection_log, std::ios::app);
+
+				file_connection_log << "0 " << mac << " e " << time(0);
+				file_connection_log.close();
+				break ;
+			}
+			sleep(1);
+		}
+		exit(0);
+	}
 }

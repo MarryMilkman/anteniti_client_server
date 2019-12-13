@@ -51,15 +51,15 @@ bool 	Client::_listenBroadcast(int timeout) {
 	if (order == Constant::Comunicate::send_info)
 		this->_sendSelfInfo();
 	else if (order == Constant::Comunicate::new_connect) {
-		std::string mac;
-		std::string ip;
-		std::string iface;
-		bool 		is_conn = true;
-
-		ss >> mac;
-		ss >> ip;
-		ss >> iface;
-		this->_access_controller.apply_access_level_for_mac(mac, ip, is_conn);
+		// std::string mac;
+		// std::string ip;
+		// std::string iface;
+		// bool 		is_conn = true;
+		//
+		// ss >> mac;
+		// ss >> ip;
+		// ss >> iface;
+		// this->_access_controller.apply_access_level_for_mac(mac, ip, is_conn);
 	}
 	else if (order == Constant::Comunicate::server_mod_free || order == Constant::Comunicate::wan_changed)
 		this->_status_controller.server_availabilit = false;
@@ -80,7 +80,6 @@ bool 	Client::_listenBroadcast(int timeout) {
 
 	// -- setting -- setting -- setting -- setting --
 	else if (order == Constant::Comunicate::setting_changed) {
-		std::cerr << "sas?\n";
 		if (!this->_setting_controller.is_setting_chenge())
 			this->_try_sendAnswer(Constant::Comunicate::setting_not_delivered, Constant::TCP_IP::listen_port, 3);
 			// this->_sendAnswer(Constant::Comunicate::setting_not_delivered, Constant::TCP_IP::listen_port);

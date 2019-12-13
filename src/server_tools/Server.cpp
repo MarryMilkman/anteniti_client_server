@@ -236,9 +236,11 @@ void 		Server::_get_info_from_routers_and_send_to_cloud(std::vector<RouterData> 
 		// f_ - need free (json_object_put)
 	struct json_object 		*f_json_for_send = json_object_new_object();
 	struct json_object 		*json_arr_routers = json_object_new_array();
+	struct json_object		*json_self_info = this->_info_controller.get_router_info_json();
 
 	json_object_object_add(f_json_for_send, "ROUTERS", json_arr_routers);
-	json_object_array_add(json_arr_routers, this->_info_controller.get_router_info_json());
+	RouterInfoController::adjust_json_router_info(json_self_info);
+	json_object_array_add(json_arr_routers, json_self_info);
 	try {
 		this->_bc_controller.send(Constant::Comunicate::send_info, 10);
 		Server::_listenAnswers(list_routers, "Get information...", Constant::TCP_IP::listen_port, 2);
@@ -501,7 +503,13 @@ int 		Server::_order_applay_and_save_setting(std::vector<RouterData> list_router
 	}
 	else {
 		std::cerr << "Setting applyed\n";
-		this->_bc_controller.send(Constant::Comunicate::setting_save, 10);
+		try {
+			this->_bc_controller.send(Constant::Comunicate::setting_save, 10);
+		}
+		catch (std::exception &e) {
+			std::cerr << e.what() << "\n";
+			return -1;
+		}
 		// int 	is_ok = true;
 		//
 		// while (true) {
